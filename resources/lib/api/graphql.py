@@ -1,5 +1,6 @@
 import requests
 from .models.video import Video
+from .models.playback import PlayBack
 from .models.serie import Serie
 from resources.lib.logging import LOG
 
@@ -14,7 +15,7 @@ class GraphQL_API():
         }
         return headers
 
-    def get_video(self, guid, client_id, access_token):
+    def get_playback(self, guid, client_id, access_token):
         query = """query  {
           playback(
             guid: "%s"
@@ -43,7 +44,7 @@ class GraphQL_API():
         headers = self.__get_headers(access_token)
         response = requests.post(self.api_url, json={"query": query }, headers=headers)
         if response.status_code == 200:
-            return Video(response.json()["data"])
+            return PlayBack(response.json()["data"])
         return None
 
     def get_series(self, category_id):
@@ -100,6 +101,58 @@ class GraphQL_API():
                 series.append(Serie(s))
             return series
         return None
+    
+    def get_videos(self, serie_id):
+        query = """
+            query play_web_content_SeriesEpisodeEntityPage_SeasonEpisodes(
+              $seasonId: ID!
+              $limit: Int
+            ) {
+              season(id: $seasonId) {
+                episodes(limit: $limit) {
+                  ...EpisodeListFragment
+                }
+              }
+            }
+            fragment EpisodeListFragment on EpisodeList {
+              pageInfo {
+                totalCount
+              }
+              nodes {
+                episodeNumber
+                watched
+                ... on Progressable {
+                  progress {
+                    position
+                    duration
+                  }
+                }
+                ...StructureEntityFragment
+              }
+            }
+            fragment StructureEntityFragment on Entity {
+              id
+              guid
+              type
+              title: title
+              description: presentationDescription
+              thumbnail: presentationArt {
+                url
+              }
+            }
+        """
+        variables = {"limit": 200, "seasonId": serie_id}
+        data = {"query": query, "variables": variables}
+        response = requests.post(self.api_url, json=data)
+        LOG.error(response.text)
+        if response.status_code == 200:
+            videos = []
+            for v in response.json()["data"]["season"]["episodes"]["nodes"]:
+                videos.append(Video(v))
+            return videos
+        return None
+
+
 
 
 
