@@ -18,3 +18,6 @@ class PlayAPI:
 
     def get_video(self, guid, client_id, access_token):
         return self.graphql.get_video(guid, client_id, access_token)
+    
+    def get_series(self, category):
+        return self.graphql.get_series(category)
