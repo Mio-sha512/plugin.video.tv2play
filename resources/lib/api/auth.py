@@ -45,7 +45,11 @@ class AuthAPI():
         cookies.pop("play.sid") # Remove session id
         self.cookie_file.save(sess.cookies)
 
-        return User(response.json()["user"])
+        if response.status_code == 200 and response.json()["user"] != None:
+            LOG.info("Successful login")
+            return User(response.json()["user"])
+        LOG.warning("Login failed")
+        return None
 
     def get_user(self):
         front_page = "https://play.tv2.dk/forside"
@@ -54,6 +58,14 @@ class AuthAPI():
         sess.get(front_page, cookies=cookies)
         response = sess.get(self.api_url)
         if response.status_code == 200 and response.json()["user"] != None:
-            LOG.log("Got user from from auth cookies")
+            LOG.info("Autheticated with cookies")
             return User(response.json()["user"])
+        LOG.warning("Failed to authenticate with cookies")
+        LOG.info("Delting cookies")
+        self.cookie_file.delete()
         return None
+
+
+
+
+

@@ -1,11 +1,17 @@
 import xbmc
 
 class Logger:
-    def log(self, msg):
-        xbmc.log("plugin.video.tv2play: " + msg, level=xbmc.LOGNOTICE)
+    def __log(self, msg, level):
+        xbmc.log("plugin.video.tv2play: " + msg, level=level)
 
     def error(self, msg):
-        xbmc.log(msg, xbmc.LOGERROR)
+        self.__log(msg, xbmc.LOGERROR)
+
+    def info(self, msg):
+        self.__log(msg, xbmc.LOGINFO)
+
+    def warning(self, msg):
+        self.__log(msg, xbmc.LOGWARNING)
 
 LOG = Logger()
 
