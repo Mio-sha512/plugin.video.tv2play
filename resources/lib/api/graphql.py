@@ -1,6 +1,7 @@
 import requests
+from .models.video import Video
 
-class PlayAPI:
+class GraphQL_API():
     def __init__(self):
         self.api_url = "https://api.ovp.tv2.dk"
 
@@ -39,6 +40,6 @@ class PlayAPI:
         headers = self.__get_headers(access_token)
         response = requests.post(self.api_url, json={"query": query }, headers=headers)
         if response.status_code == 200:
-            return response.json()["data"]
+            return Video(response.json()["data"])
         return None
 

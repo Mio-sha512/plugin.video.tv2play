@@ -1,5 +1,5 @@
 class User:
     def __init__(self, user):
-        self.user = user
+        self.user = None
         self.access_token = user.get("accessToken", None)
-        self.access_token = user.get("userId", None)
+        self.client_id = user.get("userId", None)

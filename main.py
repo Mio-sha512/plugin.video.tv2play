@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+from resources.lib.routing import Router
+import sys
 
-from resources.lib.addon import Addon
+router = Router(sys.argv)
+router.route()
 
-addon = Addon()
-addon.run()
 
 
