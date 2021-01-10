@@ -13,12 +13,14 @@ from resources.lib.globals import G
 from resources.lib.view.prompt import Prompt
 from resources.lib.view.player import Player
 from resources.lib.api.api import PlayAPI
-from resources.lib.api.models.category import CATEGORIES
+from resources.lib.api.models.structure import Structure
+from resources.lib.api.models.page import Pages
 
 class Router:
     ACTION_SERIE = "serie"
     ACTION_VIDEO = "video"
     ACTION_PLAY = "play"
+    ACTION_PAGE = "page"
 
     def __init__(self, argv):
         G.init_globals(argv) # Has to be executed first!
@@ -27,12 +29,15 @@ class Router:
         self.api = PlayAPI()
         self.params = dict(parse_qsl(argv[2][1:]))
         self.url = argv[0]
+        self.pages = Pages()
 
     def route(self):
         if self.params:
             action = self.params["action"]
-            if action == self.ACTION_SERIE:
-                self.list_series(self.params["category_id"])
+            if action == self.ACTION_PAGE:
+                self.list_page_content(self.params["page_path"])
+            elif action == self.ACTION_SERIE:
+                self.list_series(self.params["structure_id"])
             elif action == self.ACTION_VIDEO:
                 self.list_videos(self.params["serie_guid"])
             elif action == self.ACTION_PLAY:
@@ -40,15 +45,33 @@ class Router:
             else:
                 raise ValueError("Invalid paramstring: {0}!".format(self.params))
         else:
-            self.list_categories()
-    
-    def list_categories(self):
-        for category in CATEGORIES:
-            list_item = xbmcgui.ListItem(label=category.title)
-            list_item.setInfo("video", {"title": category.title,
-                                        "genre": category.genre,
+            self.list_pages()
+
+    def list_pages(self):
+        for page in self.pages.pages:
+            list_item = xbmcgui.ListItem(label=page.title)
+            list_item.setInfo("video", {"title": page.title,
                                         "mediatype": "video"})
-            url = self.get_url(action=self.ACTION_SERIE, category_id=category.id)
+            url = self.get_url(action=self.ACTION_PAGE, page_path=page.path)
+            is_folder = True
+            xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
+        xbmcplugin.endOfDirectory(G.HANDLE)
+    
+    def list_page_content(self, page_path):
+        LOG.info("Open page: " + page_path)
+        for subpage in self.api.get_subpages(page_path):
+            list_item = xbmcgui.ListItem(label=subpage.title)
+            list_item.setInfo("video", {"title": subpage.title,
+                                        "mediatype": "video"})
+            url = self.get_url(action=self.ACTION_PAGE, page_path=subpage.path)
+            is_folder = True
+            xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
+
+        for structure in self.api.get_structures(page_path):
+            list_item = xbmcgui.ListItem(label=structure.title)
+            list_item.setInfo("video", {"title": structure.title,
+                                        "mediatype": "video"})
+            url = self.get_url(action=self.ACTION_SERIE, structure_id=structure.id)
             is_folder = True
             xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
         xbmcplugin.endOfDirectory(G.HANDLE)
@@ -64,8 +87,9 @@ class Router:
         """
         return "{0}?{1}".format(self.url, urlencode(kwargs))
 
-    def list_series(self, category_id):
-        for s in self.api.get_series(category_id):
+    def list_series(self, structure_id):
+        LOG.info("Enter category: " + structure_id)
+        for s in self.api.get_series(structure_id):
             list_item = xbmcgui.ListItem(label=s.title)
             list_item.setInfo("video", {"title": s.title,
                                         "plot": s.description,
@@ -83,10 +107,8 @@ class Router:
     def list_videos(self, serie_guid):
         """
         """
+        LOG.info("Enter serie: " + serie_guid)
         for v in self.api.get_videos(serie_guid):
-            xbmcplugin.setPluginCategory(G.HANDLE, serie_guid)
-            xbmcplugin.setContent(G.HANDLE, "videos")
-
             list_item = xbmcgui.ListItem(label=v.title)
             list_item.setInfo("video", {"title": v.title,
                                         "plot": v.description,
@@ -106,13 +128,12 @@ class Router:
     def play_video(self, video_guid):
         """
         """
+        LOG.info("Play video: " + video_guid)
         user = self.api.get_user()
         if user == None:
             username, password = self.prompt.get_credentials()
             user = self.api.login(username, password)
-        LOG.info(user.access_token)
         video = self.api.get_playback(video_guid, user.client_id, user.access_token)
-        LOG.info(video.license_token)
         player = Player(video)
         player.play_video()
 

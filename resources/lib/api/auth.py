@@ -58,10 +58,10 @@ class AuthAPI():
         sess.get(front_page, cookies=cookies)
         response = sess.get(self.api_url)
         if response.status_code == 200 and response.json()["user"] != None:
-            LOG.info("Autheticated with cookies")
+            LOG.info("Authenticated with cookies")
             return User(response.json()["user"])
         LOG.warning("Failed to authenticate with cookies")
-        LOG.info("Delting cookies")
+        LOG.info("Deleting cookies")
         self.cookie_file.delete()
         return None
 

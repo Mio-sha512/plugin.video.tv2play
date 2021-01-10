@@ -1,53 +1,73 @@
 import requests
-from .models.video import Video
-from .models.playback import PlayBack
-from .models.serie import Serie
+from .models import Video, PlayBack, Serie, Page, Structure
 from resources.lib.logging import LOG
 
 class GraphQL_API():
     def __init__(self):
         self.api_url = "https://api.ovp.tv2.dk"
-        self.COMEDY_ID = "U3RydWN0dXJlOnVybMKke2NvbnRlbnR9L3Byb2dyYW1zL3Nlcmllcz9jYXRlZ29yeT1Db21lZHl8dGl0bGXCpENvbWVkeXxwcmVzZW50YXRpb27CpGZpbHRlcnBhbmVsfHBsYXRmb3JtwqR1bmRlZmluZWR8b3B0aW9uwqR1bmRlZmluZWQ="
 
     def __get_headers(self, access_token):
         headers = {
-                "Authorization": access_token
+            "Authorization": access_token
         }
         return headers
-
-    def get_playback(self, guid, client_id, access_token):
-        query = """query  {
-          playback(
-            guid: "%s"
-            format: ["application/dash+xml"]
-            platform: play_web
-          ) {
-            subtitles {
-              useAsDefault
-            }
-            progress {
-              position
-            }
-            pid
-            smil(clientId: "%s") {
-              video {
-                src
-                type
-              }
-              securityLicense {
-                url
-                token
-              }
-            }
-          }
-        }""" % ( guid, client_id )
-        headers = self.__get_headers(access_token)
-        response = requests.post(self.api_url, json={"query": query }, headers=headers)
-        if response.status_code == 200:
-            return PlayBack(response.json()["data"])
+    
+    def __do_request(self, query, headers={}, **kwargs):
+        data = {"query": query, "variables": kwargs}
+        response = requests.post(self.api_url, json=data, headers={})
+        response_data = response.json()["data"]
+        if response.status_code == 200 and response_data != None:
+            return response_data
         return None
 
-    def get_series(self, category_id):
+    def get_subpages(self, page_path):
+        query = """
+            query PageQuery($path: String!, $limit: Int){
+                    page(path: $path, platform: play_web){
+                id
+                title
+                subpages(limit: $limit) {
+                  nodes {
+                    title
+                    id
+                    path
+                  }
+                }
+              }
+            }
+        """
+        data = self.__do_request(query, path=page_path, limit=20)["page"]["subpages"]
+        if data != None:
+            pages = []
+            for p in data["nodes"]:
+                pages.append(Page(p))
+            return pages
+        return []
+    
+    def get_structures(self, page_path):
+        query = """
+            query PageQuery($path: String!){
+                    page(path: $path, platform: play_web){
+                id
+                title
+                structures {
+                  nodes {
+                    title
+                    id
+                  }
+                }
+              }
+            }
+        """
+        data = self.__do_request(query, path=page_path)
+        if data != None:
+            structures = []
+            for s in data["page"]["structures"]["nodes"]:
+                structures.append(Structure(s))
+            return structures
+        return []
+
+    def get_series(self, structure_id):
         sort = "popular"
         query = """
             query play_web_content_Structure(
@@ -93,7 +113,7 @@ class GraphQL_API():
               }
             }
         """
-        variables = {"limit": 9999, "entitySort": sort, "structureId": category_id}
+        variables = {"limit": 9999, "entitySort": sort, "structureId": structure_id}
         data = {"query": query, "variables": variables}
         response = requests.post(self.api_url, json=data)
         if response.status_code == 200:
@@ -158,6 +178,37 @@ class GraphQL_API():
             return videos
         return None
 
+    def get_playback(self, guid, client_id, access_token):
+        query = """query  {
+          playback(
+            guid: "%s"
+            format: ["application/dash+xml"]
+            platform: play_web
+          ) {
+            subtitles {
+              useAsDefault
+            }
+            progress {
+              position
+            }
+            pid
+            smil(clientId: "%s") {
+              video {
+                src
+                type
+              }
+              securityLicense {
+                url
+                token
+              }
+            }
+          }
+        }""" % ( guid, client_id )
+        headers = self.__get_headers(access_token)
+        response = requests.post(self.api_url, json={"query": query }, headers=headers)
+        if response.status_code == 200:
+            return PlayBack(response.json()["data"])
+        return None
 
 
 
