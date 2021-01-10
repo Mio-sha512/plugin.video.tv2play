@@ -21,7 +21,8 @@ class CookieFile():
 
     def delete(self):
         """Delete cookies for an account from the disk"""
-        os.remove(self.file_path)
+        if os.path.exists(self.file_path):
+            os.remove(self.file_path)
 
     def load(self):
         """Load cookies for a given account"""
