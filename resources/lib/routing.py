@@ -88,7 +88,7 @@ class Router:
         return "{0}?{1}".format(self.url, urlencode(kwargs))
 
     def list_series(self, structure_id):
-        LOG.info("Enter category: " + structure_id)
+        LOG.info("Enter structure: " + structure_id)
         for s in self.api.get_series(structure_id):
             list_item = xbmcgui.ListItem(label=s.title)
             list_item.setInfo("video", {"title": s.title,
