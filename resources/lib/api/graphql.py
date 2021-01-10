@@ -49,7 +49,8 @@ class GraphQL_API():
 
     def get_series(self, category_id):
         sort = "popular"
-        query = """query play_web_content_Structure(
+        query = """
+            query play_web_content_Structure(
               $entitySort: SortType
               $structureId: ID!
               $limit: Int
@@ -102,15 +103,17 @@ class GraphQL_API():
             return series
         return None
     
-    def get_videos(self, serie_id):
+    def get_videos(self, serie_guid):
         query = """
-            query play_web_content_SeriesEpisodeEntityPage_SeasonEpisodes(
-              $seasonId: ID!
+            query play_web_content_SeriesEpisodeEntityPage_LatestEpisodes(
+              $seriesGuid: String!
               $limit: Int
             ) {
-              season(id: $seasonId) {
-                episodes(limit: $limit) {
-                  ...EpisodeListFragment
+              series: entity(type: series, guid: $seriesGuid) {
+                ... on Series {
+                  episodes(limit: $limit) {
+                    ...EpisodeListFragment
+                  }
                 }
               }
             }
@@ -120,6 +123,8 @@ class GraphQL_API():
               }
               nodes {
                 episodeNumber
+                firstPublicationDate
+                lastPublicationDate
                 watched
                 ... on Progressable {
                   progress {
@@ -134,20 +139,21 @@ class GraphQL_API():
               id
               guid
               type
-              title: title
+              originalTitle: title
+              title: presentationTitle
+              subtitle: presentationSubtitle
               description: presentationDescription
               thumbnail: presentationArt {
                 url
               }
             }
         """
-        variables = {"limit": 200, "seasonId": serie_id}
+        variables = {"limit": 200, "seriesGuid": serie_guid}
         data = {"query": query, "variables": variables}
         response = requests.post(self.api_url, json=data)
-        LOG.error(response.text)
         if response.status_code == 200:
             videos = []
-            for v in response.json()["data"]["season"]["episodes"]["nodes"]:
+            for v in response.json()["data"]["series"]["episodes"]["nodes"]:
                 videos.append(Video(v))
             return videos
         return None

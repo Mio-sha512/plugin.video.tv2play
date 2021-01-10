@@ -34,9 +34,9 @@ class Router:
             if action == self.ACTION_SERIE:
                 self.list_series(self.params["category_id"])
             elif action == self.ACTION_VIDEO:
-                self.list_videos(self.params["serie_id"])
+                self.list_videos(self.params["serie_guid"])
             elif action == self.ACTION_PLAY:
-                self.play_video(self.params["guid"])
+                self.play_video(self.params["video_guid"])
             else:
                 raise ValueError("Invalid paramstring: {0}!".format(self.params))
         else:
@@ -74,32 +74,36 @@ class Router:
                               "icon": s.thumbnail,
                               "fanart": s.thumbnail
                               })
-            url = self.get_url(action=self.ACTION_VIDEO, serie_id=s.id)
+            url = self.get_url(action=self.ACTION_VIDEO, serie_guid=s.guid)
             is_folder = True
             xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
         xbmcplugin.endOfDirectory(G.HANDLE)
 
 
-    def list_videos(self, serie_id):
+    def list_videos(self, serie_guid):
         """
         """
-        LOG.error("HERE!!!!")
-        for v in self.api.get_videos(serie_id):
-            xbmcplugin.setPluginCategory(G.HANDLE, serie_id)
+        for v in self.api.get_videos(serie_guid):
+            xbmcplugin.setPluginCategory(G.HANDLE, serie_guid)
             xbmcplugin.setContent(G.HANDLE, "videos")
 
-            list_item = xbmcgui.ListItem(label="Title")
-            list_item.setInfo("video", {"title": "Title",
+            list_item = xbmcgui.ListItem(label=v.title)
+            list_item.setInfo("video", {"title": v.title,
+                                        "plot": v.description,
                                         "mediatype": "video"})
+            list_item.setArt({"thumb": v.thumbnail,
+                              "icon": v.thumbnail,
+                              "fanart": v.thumbnail
+                              })
             list_item.setProperty("IsPlayable", "true")
-            url = self.get_url(action="play", id=v.id)
+            url = self.get_url(action="play", video_guid=v.guid)
             is_folder = False
 
             xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
             xbmcplugin.addSortMethod(G.HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
         xbmcplugin.endOfDirectory(G.HANDLE)
 
-    def play_video(self, guid):
+    def play_video(self, video_guid):
         """
         """
         user = self.api.get_user()
@@ -107,7 +111,7 @@ class Router:
             username, password = self.prompt.get_credentials()
             user = self.api.login(username, password)
         LOG.info(user.access_token)
-        video = self.api.get_playback(guid, user.client_id, user.access_token)
+        video = self.api.get_playback(video_guid, user.client_id, user.access_token)
         LOG.info(video.license_token)
         player = Player(video)
         player.play_video()
