@@ -1,4 +1,17 @@
-# Welcome to your addon
+# plugin.video.tv2play
+
+This is a [TV2 play](https://play.tv2.dk/forside) addon for the multi-media center [Kodi](https://kodi.tv/).
+
+# Install
+
+Download the zip repository as a zip file and install it in kodi.
+
+## Beautifulsoup4
+
+The addon uses beautifulsoup4 which can be downloaded [here](https://mirrors.kodi.tv/addons/leia/script.module.beautifulsoup4/) - Should be installed the same way as the addon.
+
+
+# Dev Notes
 
 1. You might want to move this folder into the kodi addon folder for convinience when debugging. It might also be needed to be `enabled` inside of the kodi addon browser.
 2. Now start coding! Just open up the `.py` file in this folder and create what you would like Kodi to do! If you're creating a plugin, please check out [this kodi routing framework](https://github.com/tamland/kodi-plugin-routing) and copy a version of that module to your kodi addon folder.
@@ -9,5 +22,3 @@
 7. Read [this](http://kodi.wiki/view/Add-on_structure#fanart.jpg) and drop a addon background into the `resource` folder and name it `fanart.jpg`.
 8. End up with a beautiful Kodi addon! Good for you :) Maybe you want to [share it with us](http://kodi.wiki/view/Submitting_Add-on_updates_on_Github)?
 
-### Debugging
-To get the debug logging to work, just set the global kodi logging to true and the debug logging in your addons settings.
