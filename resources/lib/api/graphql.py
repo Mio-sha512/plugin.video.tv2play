@@ -59,13 +59,12 @@ class GraphQL_API():
               }
             }
         """
-        data = self.__do_request(query, path=page_path)
-        if data != None:
-            structures = []
-            for s in data["page"]["structures"]["nodes"]:
+        structures = []
+        data = self.__do_request(query, path=page_path)["page"]
+        if data["structures"] != None:
+            for s in data["structures"]["nodes"]:
                 structures.append(Structure(s))
-            return structures
-        return []
+        return structures
 
     def get_series(self, structure_id):
         sort = "popular"
