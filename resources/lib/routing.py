@@ -92,10 +92,10 @@ class Router:
         list_item = xbmcgui.ListItem(label=title)
         list_item.setInfo("video", {"title": title,
                                     "mediatype": "video"})
-        # list_item.setArt({"thumb": thumb,
-        #                   "icon": thumb,
-        #                   "fanart": thumb
-        #                   })
+        list_item.setArt({"thumb": thumb,
+                          "icon": thumb,
+                          "fanart": thumb
+                          })
         url = self.get_url(action=action, **kwargs)
         xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
 
@@ -113,14 +113,18 @@ class Router:
                     serie_guid=s.guid
                     )
         for v in videos:
-            self.add_directory_item(
-                    self.ACTION_PLAY, 
-                    title=v.title, 
-                    plot=v.description,
-                    thumb=v.thumbnail,
-                    is_folder=False,
-                    video_guid=v.guid 
-                )
+            list_item = xbmcgui.ListItem(label=v.title)
+            list_item.setInfo("video", {"title": v.title,
+                                        "plot": v.description,
+                                        "mediatype": "video"})
+            list_item.setArt({"thumb": v.thumbnail,
+                              "icon": v.thumbnail,
+                              "fanart": v.thumbnail
+                              })
+            list_item.setProperty("IsPlayable", "true")
+            url = self.get_url(action=self.ACTION_PLAY, video_guid=v.guid)
+            is_folder = False
+            xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
         xbmcplugin.endOfDirectory(G.HANDLE)
 
 
