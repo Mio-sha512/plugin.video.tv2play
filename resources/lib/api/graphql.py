@@ -14,7 +14,7 @@ class GraphQL_API():
     
     def __do_request(self, query, headers={}, **kwargs):
         data = {"query": query, "variables": kwargs}
-        response = requests.post(self.api_url, json=data, headers={})
+        response = requests.post(self.api_url, json=data, headers=headers)
         response_data = response.json()["data"]
         if response.status_code == 200 and response_data != None:
             return response_data
@@ -67,7 +67,6 @@ class GraphQL_API():
         return structures
 
     def get_series(self, structure_id):
-        sort = "popular"
         query = """
             query play_web_content_Structure(
               $entitySort: SortType
@@ -112,12 +111,10 @@ class GraphQL_API():
               }
             }
         """
-        variables = {"limit": 9999, "entitySort": sort, "structureId": structure_id}
-        data = {"query": query, "variables": variables}
-        response = requests.post(self.api_url, json=data)
-        if response.status_code == 200:
+        data = self.__do_request(query, limit=9999, entitySort="popular", structureId=structure_id)
+        if data != None:
             series = []
-            for s in response.json()["data"]["structure"]["entities"]["nodes"]:
+            for s in data["structure"]["entities"]["nodes"]:
                 series.append(Serie(s))
             return series
         return None
@@ -167,20 +164,22 @@ class GraphQL_API():
               }
             }
         """
-        variables = {"limit": 200, "seriesGuid": serie_guid}
-        data = {"query": query, "variables": variables}
-        response = requests.post(self.api_url, json=data)
-        if response.status_code == 200:
+        data = self.__do_request(query, limit=200, seriesGuid=serie_guid)
+        if data != None:
             videos = []
-            for v in response.json()["data"]["series"]["episodes"]["nodes"]:
+            for v in data["series"]["episodes"]["nodes"]:
                 videos.append(Video(v))
             return videos
         return None
 
     def get_playback(self, guid, client_id, access_token):
-        query = """query  {
+        query = """
+        query GetPlayback(
+            $guid: String!
+            $clientId: String!
+        ) {
           playback(
-            guid: "%s"
+            guid: $guid
             format: ["application/dash+xml"]
             platform: play_web
           ) {
@@ -191,7 +190,7 @@ class GraphQL_API():
               position
             }
             pid
-            smil(clientId: "%s") {
+            smil(clientId: $clientId) {
               video {
                 src
                 type
@@ -202,12 +201,11 @@ class GraphQL_API():
               }
             }
           }
-        }""" % ( guid, client_id )
+        }
+        """
         headers = self.__get_headers(access_token)
-        response = requests.post(self.api_url, json={"query": query }, headers=headers)
-        if response.status_code == 200:
-            return PlayBack(response.json()["data"])
-        return None
+        data = self.__do_request(query, headers=headers, guid=guid, clientId=client_id)
+        return PlayBack(data)
 
 
 
