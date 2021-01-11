@@ -24,6 +24,7 @@ class Router:
 
     def __init__(self, argv):
         G.init_globals(argv) # Has to be executed first!
+        LOG.info(argv)
 
         self.prompt = Prompt()
         self.api = PlayAPI()
@@ -90,12 +91,11 @@ class Router:
     def add_directory_item(self, action, title="", plot="", thumb="", is_folder=True, **kwargs):
         list_item = xbmcgui.ListItem(label=title)
         list_item.setInfo("video", {"title": title,
-                                    "plot": plot,
                                     "mediatype": "video"})
-        list_item.setArt({"thumb": thumb,
-                          "icon": thumb,
-                          "fanart": thumb
-                          })
+        # list_item.setArt({"thumb": thumb,
+        #                   "icon": thumb,
+        #                   "fanart": thumb
+        #                   })
         url = self.get_url(action=action, **kwargs)
         xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
 
@@ -112,7 +112,6 @@ class Router:
                     is_folder=True,
                     serie_guid=s.guid
                     )
-        LOG.info("Videos: " + str(len(videos)))
         for v in videos:
             self.add_directory_item(
                     self.ACTION_PLAY, 
@@ -154,8 +153,11 @@ class Router:
         if user == None:
             username, password = self.prompt.get_credentials()
             user = self.api.login(username, password)
-        video = self.api.get_playback(video_guid, user.client_id, user.access_token)
-        player = Player(video)
+        playback = self.api.get_playback(video_guid, user.client_id, user.access_token)
+        if playback == None:
+            self.prompt.display_message("Error", "An error occured")
+            return 
+        player = Player(playback)
         player.play_video()
 
 
