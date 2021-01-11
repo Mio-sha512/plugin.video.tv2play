@@ -208,7 +208,9 @@ class GraphQL_API():
         """
         headers = self.__get_headers(access_token)
         data = self.__do_request(query, headers=headers, guid=guid, clientId=client_id)
-        return PlayBack(data)
+        if data["playback"] != None:
+            return PlayBack(data["playback"])
+        return None
 
 
 
