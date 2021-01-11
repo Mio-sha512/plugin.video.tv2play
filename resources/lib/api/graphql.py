@@ -16,9 +16,18 @@ class GraphQL_API():
         data = {"query": query, "variables": kwargs}
         response = requests.post(self.api_url, json=data, headers=headers)
         response_data = response.json()["data"]
+        errors = response.json().get("errors", None)
+        if errors:
+            for e in errors:
+                message = """
+                    Message: %s - 
+                    Type: %s -
+                    Debug: %s
+                """ % (e["message"], e["data"]["type"], e["data"]["debug"])
+                LOG.error(message)
+            return None
         if response.status_code == 200 and response_data != None:
             return response_data
-        return None
 
     def get_subpages(self, page_path):
         query = """
@@ -66,7 +75,7 @@ class GraphQL_API():
                 structures.append(Structure(s))
         return structures
 
-    def get_series(self, structure_id):
+    def get_structure_content(self, structure_id):
         query = """
             query play_web_content_Structure(
               $entitySort: SortType
@@ -98,26 +107,21 @@ class GraphQL_API():
               title: presentationTitle
               description: presentationDescription
               thumbnail: presentationArt {
-                type
                 url
-              }
-              ... on Episode {
-                art(type: "promotion") {
-                  nodes {
-                    url
-                    watermarkParam
-                  }
-                }
               }
             }
         """
         data = self.__do_request(query, limit=9999, entitySort="popular", structureId=structure_id)
         if data != None:
             series = []
+            videos = []
             for s in data["structure"]["entities"]["nodes"]:
-                series.append(Serie(s))
-            return series
-        return None
+                if s["type"] == "series":
+                    series.append(Serie(s))
+                elif s["type"] == "episode":
+                    videos.append(Video(s))
+            return videos, series
+        return [],[]
     
     def get_videos(self, serie_guid):
         query = """
@@ -155,8 +159,7 @@ class GraphQL_API():
               id
               guid
               type
-              originalTitle: title
-              title: presentationTitle
+              title
               subtitle: presentationSubtitle
               description: presentationDescription
               thumbnail: presentationArt {
