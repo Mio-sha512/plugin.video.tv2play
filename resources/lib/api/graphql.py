@@ -143,6 +143,7 @@ class GraphQL_API():
               }
               nodes {
                 episodeNumber
+                seasonNumber
                 firstPublicationDate
                 lastPublicationDate
                 watched

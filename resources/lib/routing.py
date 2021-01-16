@@ -35,46 +35,45 @@ class Router:
     def route(self):
         if self.params:
             action = self.params["action"]
+            param = self.params["param"]
             if action == self.ACTION_PAGE:
-                self.list_page_content(self.params["page_path"])
+                self.list_page_content(param)
             elif action == self.ACTION_SERIE:
-                self.list_structure_content(self.params["structure_id"])
+                self.list_structure_content(param)
             elif action == self.ACTION_VIDEO:
-                self.list_videos(self.params["serie_guid"])
+                self.list_videos(param)
             elif action == self.ACTION_PLAY:
-                self.play_video(self.params["video_guid"])
+                self.play_video(param)
             else:
                 raise ValueError("Invalid paramstring: {0}!".format(self.params))
         else:
             self.list_pages()
 
+    def add_directory_item(self, action, node, param=""):
+        list_item = xbmcgui.ListItem(label=node.get_title())
+        list_item.setInfo("video", {"title": node.get_title(),
+                                    "mediatype": "video"})
+        thumb = node.get_thumb()
+        list_item.setArt({"thumb": thumb,
+                          "icon": thumb,
+                          "fanart": thumb
+                          })
+        url = self.get_url(action=action, param=param)
+        if node.is_playable():
+            list_item.setProperty("IsPlayable", "True")
+        xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, node.is_folder())
+
     def list_pages(self):
         for page in self.pages.pages:
-            list_item = xbmcgui.ListItem(label=page.title)
-            list_item.setInfo("video", {"title": page.title,
-                                        "mediatype": "video"})
-            url = self.get_url(action=self.ACTION_PAGE, page_path=page.path)
-            is_folder = True
-            xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
+            self.add_directory_item(self.ACTION_PAGE, page, param=page.get_path())
         xbmcplugin.endOfDirectory(G.HANDLE)
     
     def list_page_content(self, page_path):
         LOG.info("Open page: " + page_path)
         for subpage in self.api.get_subpages(page_path):
-            list_item = xbmcgui.ListItem(label=subpage.title)
-            list_item.setInfo("video", {"title": subpage.title,
-                                        "mediatype": "video"})
-            url = self.get_url(action=self.ACTION_PAGE, page_path=subpage.path)
-            is_folder = True
-            xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
-
+            self.add_directory_item(self.ACTION_PAGE, subpage, param=subpage.get_path())
         for structure in self.api.get_structures(page_path):
-            list_item = xbmcgui.ListItem(label=structure.title)
-            list_item.setInfo("video", {"title": structure.title,
-                                        "mediatype": "video"})
-            url = self.get_url(action=self.ACTION_SERIE, structure_id=structure.id)
-            is_folder = True
-            xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
+            self.add_directory_item(self.ACTION_SERIE, structure, param=structure.get_id())
         xbmcplugin.endOfDirectory(G.HANDLE)
 
     def get_url(self, **kwargs):
@@ -88,43 +87,14 @@ class Router:
         """
         return "{0}?{1}".format(self.url, urlencode(kwargs))
 
-    def add_directory_item(self, action, title="", plot="", thumb="", is_folder=True, **kwargs):
-        list_item = xbmcgui.ListItem(label=title)
-        list_item.setInfo("video", {"title": title,
-                                    "mediatype": "video"})
-        list_item.setArt({"thumb": thumb,
-                          "icon": thumb,
-                          "fanart": thumb
-                          })
-        url = self.get_url(action=action, **kwargs)
-        xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
-
-
     def list_structure_content(self, structure_id):
         LOG.info("Enter structure: " + structure_id)
         videos, series = self.api.get_structure_content(structure_id)
         for s in series:
-            self.add_directory_item(
-                    self.ACTION_VIDEO,
-                    title=s.title,
-                    plot=s.description, 
-                    thumb=s.thumbnail,
-                    is_folder=True,
-                    serie_guid=s.guid
-                    )
+            self.add_directory_item(self.ACTION_VIDEO, s, param=s.get_guid())
         for v in videos:
-            list_item = xbmcgui.ListItem(label=v.title)
-            list_item.setInfo("video", {"title": v.title,
-                                        "plot": v.description,
-                                        "mediatype": "video"})
-            list_item.setArt({"thumb": v.thumbnail,
-                              "icon": v.thumbnail,
-                              "fanart": v.thumbnail
-                              })
-            list_item.setProperty("IsPlayable", "true")
-            url = self.get_url(action=self.ACTION_PLAY, video_guid=v.guid)
-            is_folder = False
-            xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
+            self.add_directory_item(self.ACTION_PLAY, v, param=v.get_guid())
+            xbmcplugin.addSortMethod(G.HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
         xbmcplugin.endOfDirectory(G.HANDLE)
 
 
@@ -133,19 +103,7 @@ class Router:
         """
         LOG.info("Enter serie: " + serie_guid)
         for v in self.api.get_videos(serie_guid):
-            list_item = xbmcgui.ListItem(label=v.title)
-            list_item.setInfo("video", {"title": v.title,
-                                        "plot": v.description,
-                                        "mediatype": "video"})
-            list_item.setArt({"thumb": v.thumbnail,
-                              "icon": v.thumbnail,
-                              "fanart": v.thumbnail
-                              })
-            list_item.setProperty("IsPlayable", "true")
-            url = self.get_url(action=self.ACTION_PLAY, video_guid=v.guid)
-            is_folder = False
-
-            xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
+            self.add_directory_item(self.ACTION_PLAY, v, param=v.get_guid())
             xbmcplugin.addSortMethod(G.HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
         xbmcplugin.endOfDirectory(G.HANDLE)
 
