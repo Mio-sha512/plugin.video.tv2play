@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from ..logging import LOG
 from resources.lib.logging import LOG
 from .models.user import User
+from .exception import LoginException
 try:
     from urllib.parse import urlparse, parse_qs
 except ImportError:
@@ -32,6 +33,8 @@ class AuthAPI():
             }
 
         response = sess.post(url, data=data)
+        if response.status_code != 200:
+            raise LoginException("Invalid credentials")
 
         soup = BeautifulSoup(response.text, "html.parser")
         data = {}
@@ -49,7 +52,7 @@ class AuthAPI():
             LOG.info("Successful login")
             return User(response.json()["user"])
         LOG.warning("Login failed")
-        return None
+        raise LoginException("Invalid credentials")
 
     def get_user(self):
         front_page = "https://play.tv2.dk/forside"
@@ -63,7 +66,6 @@ class AuthAPI():
         LOG.warning("Failed to authenticate with cookies")
         LOG.info("Deleting cookies")
         self.cookie_file.delete()
-        return None
 
 
 

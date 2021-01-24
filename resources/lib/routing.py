@@ -15,6 +15,7 @@ from resources.lib.view.player import Player
 from resources.lib.api.api import PlayAPI
 from resources.lib.api.models.structure import Structure
 from resources.lib.api.models.page import Pages
+from resources.lib.api.exception import LoginException
 
 class Router:
     ACTION_SERIE = "serie"
@@ -114,7 +115,11 @@ class Router:
         user = self.api.get_user()
         if user == None:
             username, password = self.prompt.get_credentials()
-            user = self.api.login(username, password)
+            try:
+                user = self.api.login(username, password)
+            except LoginException:
+                self.prompt.display_message("Error", "Invalid credentials")
+                return
         playback = self.api.get_playback(video_guid, user.client_id, user.access_token)
         if playback == None:
             self.prompt.display_message("Error", "An error occured")
