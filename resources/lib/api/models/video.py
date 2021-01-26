@@ -19,7 +19,7 @@ class Video(Node):
         return self.guid
 
     def is_folder(self):
-        return True
+        return False
 
     def is_playable(self):
-        return False
+        return True
