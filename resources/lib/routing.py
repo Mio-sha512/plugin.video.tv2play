@@ -75,6 +75,9 @@ class Router:
             self.add_directory_item(self.ACTION_PAGE, subpage, param=subpage.get_path())
         for structure in self.api.get_structures(page_path):
             self.add_directory_item(self.ACTION_SERIE, structure, param=structure.get_id())
+        if page_path == "/live":
+            for station in self.api.get_stations():
+                self.add_directory_item(self.ACTION_PLAY, station, param=station.get_guid())
         xbmcplugin.endOfDirectory(G.HANDLE)
 
     def get_url(self, **kwargs):

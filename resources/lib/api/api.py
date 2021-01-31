@@ -30,3 +30,6 @@ class PlayAPI:
 
     def get_structures(self, page_path):
         return self.graphql.get_structures(page_path)
+    
+    def get_stations(self):
+        return self.graphql.get_stations()

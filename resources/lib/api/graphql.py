@@ -1,5 +1,5 @@
 import requests
-from .models import Video, PlayBack, Serie, Page, Structure
+from .models import Video, PlayBack, Serie, Page, Structure, Station
 from resources.lib.logging import LOG
 
 class GraphQL_API():
@@ -211,6 +211,31 @@ class GraphQL_API():
         data = self.__do_request(query, headers=headers, guid=guid, clientId=client_id)
         if data != None and data["playback"] != None:
             return PlayBack(data["playback"])
+        return None
+    
+    def get_stations(self):
+        query = """
+            query {
+              stations {
+                nodes {
+                  id
+                  type
+                  description
+                  guid
+                  title
+                  scalableLogo {
+                    regular
+                  }
+                }
+              }
+            }
+        """
+        data = self.__do_request(query)
+        if data != None and data["stations"]["nodes"] != None:
+            stations = []
+            for station in data["stations"]["nodes"] :
+                stations.append(Station(station))
+            return stations
         return None
 
 

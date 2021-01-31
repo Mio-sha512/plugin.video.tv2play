@@ -4,3 +4,4 @@ from .serie import Serie
 from .structure import Structure
 from .user import User
 from .video import Video
+from .station import Station

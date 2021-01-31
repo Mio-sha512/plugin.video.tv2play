@@ -12,7 +12,7 @@ class Video(Node):
         self.title = video.get("title", None)
         if self.episode_number != None and self.season_number != None:
             self.title = "S%d/E%d - %s" % ( self.season_number, self.episode_number, self.title )
-        self.plog = video["description"]
+        self.plot = video["description"]
         self.thumb = video["thumbnail"]["url"]
 
     def get_guid(self):
