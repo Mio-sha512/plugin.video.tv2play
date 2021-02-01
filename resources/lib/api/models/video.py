@@ -19,3 +19,9 @@ class Video(Node):
 
     def get_publication_date(self):
         return self.publication_date
+
+    def get_episode(self):
+        return self.episode_number
+
+    def get_season(self):
+        return self.season_number

@@ -53,33 +53,56 @@ class Router:
         else:
             self.list_pages()
 
-    def add_directory(self, action, node, param=""):
-        list_item = xbmcgui.ListItem(label=node.get_title())
-        list_item.setInfo("video", {"title": node.get_title(),
-                                    "mediatype": "video",
-                                    "plot": node.get_plot()})
-        thumb = node.get_thumb()
-        list_item.setArt({"thumb": thumb,
-                          "icon": thumb,
-                          "fanart": thumb
-                          })
+    def add_list_item(self, action, label="", info={}, art={}, param="", is_folder=True):
+        list_item = xbmcgui.ListItem(label=label)
+        list_item.setInfo("video", info)
+        list_item.setArt(art)
         url = self.get_url(action=action, param=param)
-        xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, True)
+        if not is_folder:
+            list_item.setProperty("IsPlayable", "True")
+        xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, is_folder)
+
+
+    def add_directory(self, action, node, param=""):
+        label = node.get_title()
+        info = {"title": node.get_title(),
+                "mediatype": "video",
+                "plot": node.get_plot()}
+        thumb = node.get_thumb()
+        art = {"thumb": thumb,
+                "icon": thumb,
+                "fanart": thumb
+            }
+        self.add_list_item(action, label=label, info=info, art=art,param=param)
 
     def add_video(self, action, video, param=""):
-        list_item = xbmcgui.ListItem(label=video.get_title())
-        list_item.setInfo("video", {"title": video.get_title(),
-                                    "mediatype": "video",
-                                    "plot": video.get_plot(),
-                                    "date": video.get_publication_date()})
+        label = video.get_title()
+        info = {"title": video.get_title(),
+                "mediatype": "video",
+                "plot": video.get_plot(),
+                "date": video.get_publication_date(),
+                "episode": video.get_episode(),
+                "season": video.get_season()
+            }
         thumb = video.get_thumb()
-        list_item.setArt({"thumb": thumb,
-                          "icon": thumb,
-                          "fanart": thumb
-                          })
-        url = self.get_url(action=action, param=param)
-        list_item.setProperty("IsPlayable", "True")
-        xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, False)
+        art = {"thumb": thumb,
+              "icon": thumb,
+              "fanart": thumb
+              }
+        self.add_list_item(action,label=label, info=info, art=art, param=param, is_folder=False)
+
+    def add_station(self, action, station, param=""):
+        label = station.get_title()
+        info = {"title": station.get_title(),
+                "mediatype": "video",
+                "plot": station.get_plot(),
+            }
+        thumb = station.get_thumb()
+        art = {"thumb": thumb,
+              "icon": thumb,
+              "fanart": thumb
+              }
+        self.add_list_item(action,label=label, info=info, art=art, param=param, is_folder=False)
 
     def list_pages(self):
         for page in self.pages.pages:
@@ -94,7 +117,7 @@ class Router:
             self.add_directory(self.ACTION_SERIE, structure, param=structure.get_id())
         if page_id == "/live":
             for station in self.api.get_stations():
-                self.add_video(self.ACTION_PLAY, station, param=station.get_id())
+                self.add_station(self.ACTION_PLAY, station, param=station.get_id())
         xbmcplugin.endOfDirectory(G.HANDLE)
 
     def get_url(self, **kwargs):
