@@ -77,13 +77,21 @@ class Router:
 
     def add_video(self, action, video, param=""):
         label = video.get_title()
+        LOG.info("WATCHED: " + str(video.get_watched()))
         info = {"title": video.get_title(),
                 "mediatype": "video",
                 "plot": video.get_plot(),
                 "date": video.get_publication_date(),
                 "episode": video.get_episode(),
-                "season": video.get_season()
+                "season": video.get_season(),
+                "watched": video.get_watched()
             }
+
+        if video.in_progress():
+            position, duration = video.get_progress()
+            info["position"] = position
+            info["duration"] = duration
+
         thumb = video.get_thumb()
         art = {"thumb": thumb,
               "icon": thumb,

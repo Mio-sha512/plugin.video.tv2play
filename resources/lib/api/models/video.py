@@ -14,7 +14,6 @@ class Video(Node):
         self.season_number = video.get("seasonNumber", None)
         self.publication_date = datetime.fromtimestamp(int(video.get("firstPublicationDate", None)) / 1000).strftime("%d.%m.%Y")
         self.watched = video.get("watched", None)
-        self.progress = video.get("progress", None)
         if self.episode_number != None and self.season_number != None:
             self.title = "S%d/E%d - %s" % ( self.season_number, self.episode_number, self.title )
 
@@ -26,3 +25,13 @@ class Video(Node):
 
     def get_season(self):
         return self.season_number
+
+    def get_progress(self):
+        if self.video.get("progress", None):
+            return (self.video["progress"]["position"], self.video["progress"]["duration"])
+
+    def in_progress(self):
+        return self.video.get("progress", None)
+
+    def get_watched(self):
+        return self.watched
