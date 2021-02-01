@@ -1,4 +1,5 @@
 from .node import Node
+from datetime import datetime
 
 class Video(Node):
     def __init__(self, video):
@@ -11,7 +12,7 @@ class Video(Node):
         self.video = video
         self.episode_number = video.get("episodeNumber", None)
         self.season_number = video.get("seasonNumber", None)
-        self.publication_date = video.get("firstPublicationDate", None)
+        self.publication_date = datetime.fromtimestamp(int(video.get("firstPublicationDate", None)) / 1000).strftime("%d.%m.%Y")
         self.watched = video.get("watched", None)
         self.progress = video.get("progress", None)
         if self.episode_number != None and self.season_number != None:
