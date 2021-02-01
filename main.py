@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from resources.lib.routing import Router
+from resources.lib.routing import ROUTER
 import sys
 
-router = Router(sys.argv)
-router.route()
+ROUTER.initialize(sys.argv)
+ROUTER.route()
 
 
 

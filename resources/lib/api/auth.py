@@ -13,6 +13,8 @@ class AuthAPI():
     def __init__(self, cookie_file):
         self.cookie_file = cookie_file
         self.api_url = "https://play.tv2.dk/api/user"
+        self.session = requests.session()
+        self.user = None
 
     def login(self, username, password):
         login_url = self.api_url + "/login?return_url=/"
@@ -55,17 +57,22 @@ class AuthAPI():
         raise LoginException("Invalid credentials")
 
     def get_user(self):
+        if self.user != None:
+            LOG.info("Reuse User object")
+            return self.user
         front_page = "https://play.tv2.dk/forside"
-        sess = requests.session()
+        # sess = requests.session()
         cookies = self.cookie_file.load()
-        sess.get(front_page, cookies=cookies)
-        response = sess.get(self.api_url)
+        self.session.get(front_page, cookies=cookies)
+        response = self.session.get(self.api_url)
         if response.status_code == 200 and response.json()["user"] != None:
             LOG.info("Authenticated with cookies")
-            return User(response.json()["user"])
+            self.user = User(response.json()["user"])
+            return self.user
         LOG.warning("Failed to authenticate with cookies")
         LOG.info("Deleting cookies")
         self.cookie_file.delete()
+        return None
 
 
 

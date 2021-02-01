@@ -17,21 +17,24 @@ from resources.lib.api.models.structure import Structure
 from resources.lib.api.models.page import Pages
 from resources.lib.api.exception import LoginException
 
+
+
 class Router:
     ACTION_SERIE = "serie"
     ACTION_VIDEO = "video"
     ACTION_PLAY = "play"
     ACTION_PAGE = "page"
 
-    def __init__(self, argv):
+    def initialize(self, argv):
         G.init_globals(argv) # Has to be executed first!
+        if G.FIRST_RUN:
+            self.prompt = Prompt()
+            self.api = PlayAPI()
+            self.pages = Pages()
+        G.FIRST_RUN = False
         LOG.info(argv)
-
-        self.prompt = Prompt()
-        self.api = PlayAPI()
         self.params = dict(parse_qsl(argv[2][1:]))
         self.url = argv[0]
-        self.pages = Pages()
 
     def route(self):
         if self.params:
@@ -130,8 +133,4 @@ class Router:
         player = Player(playback)
         player.play_video()
 
-
-
-
-
-
+ROUTER = Router()
