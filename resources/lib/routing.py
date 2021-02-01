@@ -56,7 +56,8 @@ class Router:
     def add_directory_item(self, action, node, param=""):
         list_item = xbmcgui.ListItem(label=node.get_title())
         list_item.setInfo("video", {"title": node.get_title(),
-                                    "mediatype": "video"})
+                                    "mediatype": "video",
+                                    "plot": node.get_plot()})
         thumb = node.get_thumb()
         list_item.setArt({"thumb": thumb,
                           "icon": thumb,
