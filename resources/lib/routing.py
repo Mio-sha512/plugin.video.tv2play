@@ -53,7 +53,7 @@ class Router:
         else:
             self.list_pages()
 
-    def add_directory_item(self, action, node, param=""):
+    def add_directory(self, action, node, param=""):
         list_item = xbmcgui.ListItem(label=node.get_title())
         list_item.setInfo("video", {"title": node.get_title(),
                                     "mediatype": "video",
@@ -64,24 +64,37 @@ class Router:
                           "fanart": thumb
                           })
         url = self.get_url(action=action, param=param)
-        if node.is_playable():
-            list_item.setProperty("IsPlayable", "True")
-        xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, node.is_folder())
+        xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, True)
+
+    def add_video(self, action, video, param=""):
+        list_item = xbmcgui.ListItem(label=video.get_title())
+        list_item.setInfo("video", {"title": video.get_title(),
+                                    "mediatype": "video",
+                                    "plot": video.get_plot(),
+                                    "date": video.get_publication_date()})
+        thumb = video.get_thumb()
+        list_item.setArt({"thumb": thumb,
+                          "icon": thumb,
+                          "fanart": thumb
+                          })
+        url = self.get_url(action=action, param=param)
+        list_item.setProperty("IsPlayable", "True")
+        xbmcplugin.addDirectoryItem(G.HANDLE, url, list_item, False)
 
     def list_pages(self):
         for page in self.pages.pages:
-            self.add_directory_item(self.ACTION_PAGE, page, param=page.get_path())
+            self.add_directory(self.ACTION_PAGE, page, param=page.get_id())
         xbmcplugin.endOfDirectory(G.HANDLE)
     
-    def list_page_content(self, page_path):
-        LOG.info("Open page: " + page_path)
-        for subpage in self.api.get_subpages(page_path):
-            self.add_directory_item(self.ACTION_PAGE, subpage, param=subpage.get_path())
-        for structure in self.api.get_structures(page_path):
-            self.add_directory_item(self.ACTION_SERIE, structure, param=structure.get_id())
-        if page_path == "/live":
+    def list_page_content(self, page_id):
+        LOG.info("Open page: " + page_id)
+        for subpage in self.api.get_subpages(page_id):
+            self.add_directory(self.ACTION_PAGE, subpage, param=subpage.get_id())
+        for structure in self.api.get_structures(page_id):
+            self.add_directory(self.ACTION_SERIE, structure, param=structure.get_id())
+        if page_id == "/live":
             for station in self.api.get_stations():
-                self.add_directory_item(self.ACTION_PLAY, station, param=station.get_guid())
+                self.add_video(self.ACTION_PLAY, station, param=station.get_id())
         xbmcplugin.endOfDirectory(G.HANDLE)
 
     def get_url(self, **kwargs):
@@ -99,10 +112,10 @@ class Router:
         LOG.info("Enter structure: " + structure_id)
         videos, series = self.api.get_structure_content(structure_id)
         for s in series:
-            self.add_directory_item(self.ACTION_VIDEO, s, param=s.get_guid())
+            self.add_directory(self.ACTION_VIDEO, s, param=s.get_id())
         for v in videos:
-            self.add_directory_item(self.ACTION_PLAY, v, param=v.get_guid())
-            xbmcplugin.addSortMethod(G.HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
+            self.add_video(self.ACTION_PLAY, v, param=v.get_id())
+            xbmcplugin.addSortMethod(G.HANDLE, xbmcplugin.SORT_METHOD_DATE)
         xbmcplugin.endOfDirectory(G.HANDLE)
 
 
@@ -111,8 +124,8 @@ class Router:
         """
         LOG.info("Enter serie: " + serie_guid)
         for v in self.api.get_videos(serie_guid):
-            self.add_directory_item(self.ACTION_PLAY, v, param=v.get_guid())
-            xbmcplugin.addSortMethod(G.HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
+            self.add_video(self.ACTION_PLAY, v, param=v.get_id())
+            xbmcplugin.addSortMethod(G.HANDLE, xbmcplugin.SORT_METHOD_DATE)
         xbmcplugin.endOfDirectory(G.HANDLE)
 
     def play_video(self, video_guid):

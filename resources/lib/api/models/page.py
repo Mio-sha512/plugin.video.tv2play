@@ -2,18 +2,9 @@ from .node import Node
 
 class Page(Node):
     def __init__(self, page):
-        Node.__init__(self)
-        self.title = page["title"]
-        self.path = page["path"]
-
-    def get_path(self):
-        return self.path
-
-    def is_folder(self):
-        return True
-
-    def is_playable(self):
-        return False
+        title = page["title"]
+        id = page["path"]
+        Node.__init__(self, title=title, id=id)
 
 class Pages():
     PAGES = [
