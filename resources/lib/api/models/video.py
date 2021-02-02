@@ -33,5 +33,7 @@ class Video(Node):
     def in_progress(self):
         return self.video.get("progress", None)
 
-    def get_watched(self):
-        return self.watched
+    def get_playcount(self):
+        if self.watched:
+            return 1
+        return 0
