@@ -35,6 +35,18 @@ class Router:
         LOG.info(argv)
         self.params = dict(parse_qsl(argv[2][1:]))
         self.url = argv[0]
+        self.login()
+
+    def login(self):
+        user = self.api.get_user()
+        if user == None:
+            username, password = self.prompt.get_credentials()
+            try:
+                user = self.api.login(username, password)
+            except LoginException:
+                self.prompt.display_message("Error", "Invalid credentials")
+        self.user = user
+
 
     def route(self):
         if self.params:
@@ -163,15 +175,7 @@ class Router:
         """
         """
         LOG.info("Play video: " + video_guid)
-        user = self.api.get_user()
-        if user == None:
-            username, password = self.prompt.get_credentials()
-            try:
-                user = self.api.login(username, password)
-            except LoginException:
-                self.prompt.display_message("Error", "Invalid credentials")
-                return
-        playback = self.api.get_playback(video_guid, user.client_id, user.access_token)
+        playback = self.api.get_playback(video_guid, self.user.client_id, self.user.access_token)
         if playback == None:
             self.prompt.display_message("Error", "An error occured")
             return 
