@@ -105,10 +105,10 @@ class Router:
             info["duration"] = duration
 
         thumb = video.get_thumb()
-        art = {"thumb": thumb,
-              "icon": thumb,
-              "fanart": thumb
-              }
+        art = { "thumb": thumb,
+                "icon": thumb,
+                "fanart": thumb
+            }
         self.add_list_item(action,label=label, info=info, art=art, param=param, is_folder=False)
 
     def add_station(self, action, station, param=""):
@@ -118,10 +118,10 @@ class Router:
                 "plot": station.get_plot(),
             }
         thumb = station.get_thumb()
-        art = {"thumb": thumb,
-              "icon": thumb,
-              "fanart": thumb
-              }
+        art = { "thumb": thumb,
+                "icon": thumb,
+                "fanart": thumb
+            }
         self.add_list_item(action,label=label, info=info, art=art, param=param, is_folder=False)
 
     def list_pages(self):

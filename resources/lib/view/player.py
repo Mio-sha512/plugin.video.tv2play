@@ -10,6 +10,7 @@ class Player():
         self.video = video
 
     def play_video(self):
+        LOG.info("Playing video at: " + self.video.src)
         list_item = xbmcgui.ListItem(path=self.video.src)
         list_item.setContentLookup(False)
         list_item.setMimeType(self.video.mime_type)
