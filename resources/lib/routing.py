@@ -31,24 +31,28 @@ class Router:
             self.prompt = Prompt()
             self.api = PlayAPI()
             self.pages = Pages()
+            self.player = None
         G.FIRST_RUN = False
         LOG.info(argv)
         self.params = dict(parse_qsl(argv[2][1:]))
         self.url = argv[0]
-        self.login()
 
-    def login(self):
-        user = self.api.get_user()
-        if user == None:
+    def __login(self):
+        if self.api.is_authenticated():
+            LOG.info("Already authenticated")
+            return True
+        if not self.api.login_with_cookie():
             username, password = self.prompt.get_credentials()
-            try:
-                user = self.api.login(username, password)
-            except LoginException:
+            if not self.api.login(username, password):
                 self.prompt.display_message("Error", "Invalid credentials")
-        self.user = user
-
+                return False
+            else:
+                return True
+        return True
 
     def route(self):
+        if not self.__login():
+            return
         if self.params:
             action = self.params["action"]
             param = self.params["param"]
@@ -174,12 +178,14 @@ class Router:
     def play_video(self, video_guid):
         """
         """
+        if self.player != None:
+            self.player.stop()
         LOG.info("Play video: " + video_guid)
-        playback = self.api.get_playback(video_guid, self.user.client_id, self.user.access_token)
+        playback = self.api.get_playback(video_guid)
         if playback == None:
             self.prompt.display_message("Error", "An error occured")
             return 
-        player = Player(playback)
-        player.play_video()
+        self.player = Player(playback)
+        self.player.play_video()
 
 ROUTER = Router()

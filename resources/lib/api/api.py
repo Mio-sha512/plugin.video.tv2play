@@ -1,4 +1,5 @@
 import requests
+import time
 from resources.lib.api.cookies import CookieFile
 from resources.lib.globals import G
 from bs4 import BeautifulSoup
@@ -6,6 +7,7 @@ from ..logging import LOG
 from resources.lib.logging import LOG
 from .exception import LoginException
 from .models import Video, PlayBack, Serie, Page, Structure, Station, User
+from .concurrency import ConcurrencyLock
 try:
     from urllib.parse import urlparse, parse_qs
 except ImportError:
@@ -18,6 +20,7 @@ class PlayAPI:
         self.cookie_file = CookieFile(G.DATA_PATH, G.COOKIES_FILE_NAME)
         self.session = requests.session()
         self.user = None
+        self.concurrency_lock = None
 
     def login(self, username, password):
         login_url = self.auth_url + "/login?return_url=/"
@@ -38,7 +41,7 @@ class PlayAPI:
 
         response = self.session.post(url, data=data)
         if response.status_code != 200:
-            raise LoginException("Invalid credentials")
+            return False
 
         soup = BeautifulSoup(response.text, "html.parser")
         data = {}
@@ -48,20 +51,20 @@ class PlayAPI:
         response = self.session.post(url, data=data)
 
         response = self.session.get(self.auth_url)
-        cookies = self.session.cookies
-        cookies.pop("play.sid") # Remove session id
-        self.cookie_file.save(self.session.cookies)
-
         if response.status_code == 200 and response.json()["user"] != None:
-            LOG.info("Successful login")
-            return User(response.json()["user"])
-        LOG.warning("Login failed")
-        raise LoginException("Invalid credentials")
+            LOG.info("Successful login - Saving cookies")
 
-    def get_user(self):
-        if self.user != None:
-            LOG.info("Reuse User object")
-            return self.user
+            cookies = self.session.cookies
+            cookies.pop("play.sid") # Remove session id
+            self.cookie_file.save(self.session.cookies)
+
+            self.user = User(response.json()["user"])
+            self.concurrency_lock = ConcurrencyLock(self.user.client_id)
+            return True
+        LOG.warning("Login failed")
+        return False
+
+    def login_with_cookie(self):
         front_page = "https://play.tv2.dk/forside"
         cookies = self.cookie_file.load()
         self.session.get(front_page, cookies=cookies)
@@ -69,21 +72,31 @@ class PlayAPI:
         if response.status_code == 200 and response.json()["user"] != None:
             LOG.info("Authenticated with cookies")
             self.user = User(response.json()["user"])
-            return self.user
-        LOG.warning("Failed to authenticate with cookies")
+            self.concurrency_lock = ConcurrencyLock(self.user.client_id)
+            self.session.headers.update(self.__get_headers())
+            return True
+        LOG.warning("Failed to authenticate with cookies with status_code :" + str(response.status_code))
         LOG.info("Deleting cookies")
         self.cookie_file.delete()
-        return None
+        return False
+    
+    def is_authenticated(self):
+        return self.user != None
 
     def __get_headers(self):
+        LOG.info("Auth token: " + self.user.access_token)
         headers = {
-            "authorization": self.user.access_token
+            "authorization": self.user.access_token,
+            "Host": "api.ovp.tv2.dk",
+            "Origin": "https://play.tv2.dk",
+            "DNT": "1"
         }
         return headers
     
     def __do_request(self, query, **kwargs):
         data = {"query": query, "variables": kwargs}
-        response = self.session.post(self.api_url, json=data, headers=self.__get_headers())
+        LOG.info("Request: " + str(self.session.headers))
+        response = self.session.post(self.api_url, json=data)
         response_data = response.json()["data"]
         errors = response.json().get("errors", None)
         if errors:
@@ -245,7 +258,7 @@ class PlayAPI:
             return videos
         return None
 
-    def get_playback(self, guid, client_id, access_token):
+    def get_playback(self, guid):
         query = """
         query GetPlayback(
             $guid: String!
@@ -264,6 +277,12 @@ class PlayAPI:
             }
             pid
             smil(clientId: $clientId) {
+              meta {
+                nodes {
+                  name
+                  content
+                }
+              }
               video {
                 src
                 type
@@ -276,7 +295,11 @@ class PlayAPI:
           }
         }
         """
-        data = self.__do_request(query, guid=guid, clientId=client_id)
+        if self.concurrency_lock.is_locked():
+            response_code = self.concurrency_lock.unlock()
+            LOG.info("Unlocking concurrency lock - Status: " + str(response_code))
+        data = self.__do_request(query, guid=guid, clientId=self.user.client_id)
+        self.concurrency_lock.set_meta(data["playback"]["smil"]["meta"]["nodes"])
         if data != None and data["playback"] != None:
             return PlayBack(data["playback"])
         return None
