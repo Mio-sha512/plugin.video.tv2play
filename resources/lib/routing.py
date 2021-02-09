@@ -177,7 +177,6 @@ class Router:
     def play_video(self, video_guid):
         """
         """
-        xbmc.Player().stop()
         LOG.info("Play video: " + video_guid)
         playback = self.api.get_playback(video_guid)
         if playback == None:

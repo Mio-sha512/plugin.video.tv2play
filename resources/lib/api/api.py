@@ -297,7 +297,7 @@ class PlayAPI:
         }
         """
         if self.concurrency_lock.is_locked():
-            response_code = self.concurrency_lock.unlock(self.user.device_id)
+            response_code = self.concurrency_lock.unlock(self.user.client_id, self.session)
             LOG.info("Unlocking concurrency lock - Status: " + str(response_code))
         data = self.__do_request(query, guid=guid, clientId=self.user.client_id)
         self.concurrency_lock.set_meta(data["playback"]["smil"]["meta"]["nodes"])
