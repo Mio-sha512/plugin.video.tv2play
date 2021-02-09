@@ -1,9 +1,10 @@
 import requests
 from resources.lib.logging import LOG
+from xbmc import Player
+import time
 
 class ConcurrencyLock:
-    def __init__(self, client_id, meta=None):
-        self.client_id = client_id
+    def __init__(self, meta=None):
         self.url_params = "?schema=1.0&form=json" 
         if meta == None:
             self.meta = None
@@ -25,11 +26,12 @@ class ConcurrencyLock:
         return self.meta != None
 
 
-    def unlock(self):
+    def unlock(self, client_id):
         if self.meta != None:
+            Player().stop()
             data = {
                     "unlock": { 
-                        "clientId": self.client_id, 
+                        "clientId": client_id, 
                         "encryptedLock": self.encrypted_lock,
                         "id": self.lock_id,
                         "sequenceToken": self.sequence_token

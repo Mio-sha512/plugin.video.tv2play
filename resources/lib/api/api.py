@@ -54,12 +54,12 @@ class PlayAPI:
         if response.status_code == 200 and response.json()["user"] != None:
             LOG.info("Successful login - Saving cookies")
 
-            cookies = self.session.cookies
+            cookies = self.session.cookies.copy()
             cookies.pop("play.sid") # Remove session id
             self.cookie_file.save(self.session.cookies)
 
             self.user = User(response.json()["user"])
-            self.concurrency_lock = ConcurrencyLock(self.user.client_id)
+            self.concurrency_lock = ConcurrencyLock()
             return True
         LOG.warning("Login failed")
         return False
@@ -71,8 +71,9 @@ class PlayAPI:
         response = self.session.get(self.auth_url)
         if response.status_code == 200 and response.json()["user"] != None:
             LOG.info("Authenticated with cookies")
+            LOG.info("USER: " + str(response.json()) )
             self.user = User(response.json()["user"])
-            self.concurrency_lock = ConcurrencyLock(self.user.client_id)
+            self.concurrency_lock = ConcurrencyLock()
             self.session.headers.update(self.__get_headers())
             return True
         LOG.warning("Failed to authenticate with cookies with status_code :" + str(response.status_code))
@@ -296,7 +297,7 @@ class PlayAPI:
         }
         """
         if self.concurrency_lock.is_locked():
-            response_code = self.concurrency_lock.unlock()
+            response_code = self.concurrency_lock.unlock(self.user.device_id)
             LOG.info("Unlocking concurrency lock - Status: " + str(response_code))
         data = self.__do_request(query, guid=guid, clientId=self.user.client_id)
         self.concurrency_lock.set_meta(data["playback"]["smil"]["meta"]["nodes"])

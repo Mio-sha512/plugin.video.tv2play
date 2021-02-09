@@ -36,6 +36,10 @@ class Player():
             value='mpd')
 
         list_item.setProperty(
+                key=is_helper.inputstream_addon + ".manifet_update_parameter",
+                value="full")
+
+        list_item.setProperty(
             key=is_helper.inputstream_addon + '.license_key',
             value=self.video.license_url)
 

@@ -31,7 +31,6 @@ class Router:
             self.prompt = Prompt()
             self.api = PlayAPI()
             self.pages = Pages()
-            self.player = None
         G.FIRST_RUN = False
         LOG.info(argv)
         self.params = dict(parse_qsl(argv[2][1:]))
@@ -178,14 +177,13 @@ class Router:
     def play_video(self, video_guid):
         """
         """
-        if self.player != None:
-            self.player.stop()
+        xbmc.Player().stop()
         LOG.info("Play video: " + video_guid)
         playback = self.api.get_playback(video_guid)
         if playback == None:
             self.prompt.display_message("Error", "An error occured")
             return 
-        self.player = Player(playback)
-        self.player.play_video()
+        player = Player(playback)
+        player.play_video()
 
 ROUTER = Router()
