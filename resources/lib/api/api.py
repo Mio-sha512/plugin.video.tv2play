@@ -96,8 +96,9 @@ class PlayAPI:
     
     def __do_request(self, query, **kwargs):
         data = {"query": query, "variables": kwargs}
-        LOG.info("Request: " + str(self.session.headers))
-        response = self.session.post(self.api_url, json=data)
+        headers = self.__get_headers()
+        LOG.info("Request: " + str(headers))
+        response = self.session.post(self.api_url, json=data, headers=headers)
         response_data = response.json()["data"]
         errors = response.json().get("errors", None)
         if errors:
