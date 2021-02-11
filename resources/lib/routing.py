@@ -36,7 +36,7 @@ class Router:
         self.params = dict(parse_qsl(argv[2][1:]))
         self.url = argv[0]
 
-    def __login(self):
+    def login(self):
         if self.api.is_authenticated():
             LOG.info("Already authenticated")
             return True
@@ -50,7 +50,7 @@ class Router:
         return True
 
     def route(self):
-        if not self.__login():
+        if not self.login():
             return
         if self.params:
             action = self.params["action"]

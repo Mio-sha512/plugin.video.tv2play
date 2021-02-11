@@ -68,10 +68,9 @@ class PlayAPI:
         front_page = "https://play.tv2.dk/forside"
         cookies = self.cookie_file.load()
         self.session.get(front_page, cookies=cookies)
-        response = self.session.get(self.auth_url)
+        response = self.session.get(self.auth_url, cookies=cookies)
         if response.status_code == 200 and response.json()["user"] != None:
             LOG.info("Authenticated with cookies")
-            LOG.info("USER: " + str(response.json()) )
             self.user = User(response.json()["user"])
             self.concurrency_lock = ConcurrencyLock()
             self.session.headers.update(self.__get_headers())
