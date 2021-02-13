@@ -14,7 +14,7 @@
         <description lang="en_GB"></description>
         <language></language>
         <platform>all</platform>
-        <!-- <reuselanguageinvoker>true</reuselanguageinvoker> -->
+        <reuselanguageinvoker>true</reuselanguageinvoker>
         <license>MIT</license>
         <forum></forum>
         <website>www.matiasstorm.com</website>
