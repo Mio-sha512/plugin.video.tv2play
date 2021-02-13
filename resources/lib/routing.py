@@ -15,8 +15,7 @@ from resources.lib.view.player import Player
 from resources.lib.api.api import PlayAPI
 from resources.lib.api.models.structure import Structure
 from resources.lib.api.models.page import Pages
-from resources.lib.api.exception import LoginException
-
+from resources.lib.api.exception import ConcurrencyLimitViolationException, HTTPException
 
 
 class Router:
@@ -37,17 +36,22 @@ class Router:
         self.url = argv[0]
 
     def login(self):
-        if self.api.is_authenticated():
-            LOG.info("Already authenticated")
-            return True
-        if not self.api.login_with_cookie():
-            username, password = self.prompt.get_credentials()
-            if not self.api.login(username, password):
-                self.prompt.display_message("Error", "Invalid credentials")
-                return False
-            else:
+        try:
+            is_authenticated = self.api.is_authenticated()
+            if is_authenticated:
+                LOG.info("Already authenticated")
                 return True
-        return True
+            if not self.api.login_with_cookie():
+                username, password = self.prompt.get_credentials()
+                if not self.api.login(username, password):
+                    self.prompt.display_message("Error", "Invalid credentials")
+                    return False
+                else:
+                    return True
+            return True
+        except HTTPException as exp:
+            self.prompt.display_message(exp.title, exp.msg)
+            return False
 
     def route(self):
         if not self.login():
@@ -178,11 +182,17 @@ class Router:
         """
         """
         LOG.info("Play video: " + video_guid)
-        playback = self.api.get_playback(video_guid)
-        if playback == None:
-            self.prompt.display_message("Error", "An error occured")
-            return 
-        player = Player(playback)
-        player.play_video()
+        try:
+            playback = self.api.get_playback(video_guid)
+        except ConcurrencyLimitViolationException as exp:
+            self.prompt.display_message(exp.title, exp.msg)
+        except HTTPException as exp:
+            self.prompt.display_message(exp.title, exp.msg)
+        else:
+            if playback == None:
+                self.prompt.display_message("Error", "An error occured")
+                return 
+            player = Player(playback)
+            player.play_video()
 
 ROUTER = Router()

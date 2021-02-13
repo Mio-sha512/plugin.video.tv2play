@@ -5,7 +5,7 @@ from resources.lib.globals import G
 from bs4 import BeautifulSoup
 from ..logging import LOG
 from resources.lib.logging import LOG
-from .exception import LoginException
+from .exception import LoginException, HTTPException, ConcurrencyLimitViolationException
 from .models import Video, PlayBack, Serie, Page, Structure, Station, User
 from .concurrency import ConcurrencyLock
 try:
@@ -67,18 +67,22 @@ class PlayAPI:
     def login_with_cookie(self):
         front_page = "https://play.tv2.dk/forside"
         cookies = self.cookie_file.load()
-        self.session.get(front_page, cookies=cookies)
-        response = self.session.get(self.auth_url, cookies=cookies)
-        if response.status_code == 200 and response.json()["user"] != None:
-            LOG.info("Authenticated with cookies")
-            self.user = User(response.json()["user"])
-            self.concurrency_lock = ConcurrencyLock()
-            self.session.headers.update(self.__get_headers())
-            return True
-        LOG.warning("Failed to authenticate with cookies with status_code :" + str(response.status_code))
-        LOG.info("Deleting cookies")
-        self.cookie_file.delete()
-        return False
+        try:
+            self.session.get(front_page, cookies=cookies)
+            response = self.session.get(self.auth_url, cookies=cookies)
+        except requests.exceptions.ConnectionError:
+            raise HTTPException()
+        else:
+            if response.status_code == 200 and response.json()["user"] != None:
+                LOG.info("Authenticated with cookies")
+                self.user = User(response.json()["user"])
+                self.concurrency_lock = ConcurrencyLock()
+                self.session.headers.update(self.__get_headers())
+                return True
+            LOG.warning("Failed to authenticate with cookies with status_code :" + str(response.status_code))
+            LOG.info("Deleting cookies")
+            self.cookie_file.delete()
+            return False
     
     def is_authenticated(self):
         return self.user != None
@@ -107,6 +111,11 @@ class PlayAPI:
                     Debug: %s
                 """ % (e["message"], e["data"]["type"], e["data"]["debug"])
                 LOG.error(message)
+                exception_type = e["data"]["type"]
+                if exception_type == HTTPException.TYPE:
+                    raise HTTPException()
+                elif exception_type == ConcurrencyLimitViolationException.TYPE:
+                    raise ConcurrencyLimitViolationException()
             return None
         if response.status_code == 200 and response_data != None:
             return response_data
@@ -298,10 +307,17 @@ class PlayAPI:
         if self.concurrency_lock.is_locked():
             response_code = self.concurrency_lock.unlock(self.user.client_id, self.session)
             LOG.info("Unlocking concurrency lock - Status: " + str(response_code))
-        data = self.__do_request(query, guid=guid, clientId=self.user.client_id)
-        self.concurrency_lock.set_meta(data["playback"]["smil"]["meta"]["nodes"])
-        if data != None and data["playback"] != None:
-            return PlayBack(data["playback"])
+        try:
+            data = self.__do_request(query, guid=guid, clientId=self.user.client_id)
+            self.concurrency_lock.set_meta(data["playback"]["smil"]["meta"]["nodes"])
+            if data != None and data["playback"] != None:
+                return PlayBack(data["playback"])
+        except HTTPException as exp:
+            LOG.warning("Http Exception")
+            raise exp
+        except ConcurrencyLimitViolationException as exp:
+            LOG.warning("Concurrency Limit Violation")
+            raise exp
         return None
     
     def get_stations(self):
