@@ -5,7 +5,7 @@ class Station(Node):
     def __init__(self, station):
         id = station["guid"]
         title = station["title"]
-        thumb = station["scalableLogo"]["regular"]
+        thumb = station["presentationArt"]["url"]
         plot = station["description"]
         Node.__init__(self, title=title, thumb=thumb, plot=plot, id=id)
 

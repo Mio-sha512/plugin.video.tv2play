@@ -328,9 +328,9 @@ class PlayAPI:
                   description
                   guid
                   title
-                  scalableLogo {
-                    regular
-                  }
+                  presentationArt{
+                    url
+                 }
                 }
               }
             }
