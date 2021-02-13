@@ -12,7 +12,9 @@ class Video(Node):
         self.video = video
         self.episode_number = video.get("episodeNumber", None)
         self.season_number = video.get("seasonNumber", None)
-        self.publication_date = datetime.fromtimestamp(int(video.get("firstPublicationDate", None)) / 1000).strftime("%d.%m.%Y")
+        self.publication_date = None
+        if video.get("firstPublicationDate", None) != None:
+            self.publication_date = datetime.fromtimestamp(int(video.get("firstPublicationDate", None)) / 1000).strftime("%d.%m.%Y")
         self.watched = video.get("watched", None)
         if self.episode_number != None and self.season_number != None:
             self.title = "S%d/E%d - %s" % ( self.season_number, self.episode_number, self.title )

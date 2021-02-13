@@ -14,6 +14,11 @@ class Prompt():
         dialog = xbmcgui.Dialog()
         dialog.ok(G.ADDON_NAME, message)
 
+    def get_input(self, msg, type=xbmcgui.INPUT_ALPHANUM):
+        dialog = xbmcgui.Dialog()
+        input = dialog.input(msg, type=type)
+        return input
+
 
 
 

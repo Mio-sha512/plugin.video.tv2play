@@ -13,16 +13,15 @@ from resources.lib.globals import G
 from resources.lib.view.prompt import Prompt
 from resources.lib.view.player import Player
 from resources.lib.api.api import PlayAPI
-from resources.lib.api.models.structure import Structure
-from resources.lib.api.models.page import Pages
+from resources.lib.api.models import Structure, Pages, Node
 from resources.lib.api.exception import ConcurrencyLimitViolationException, HTTPException
 
-
 class Router:
+    ACTION_STRUCTURE = "structure"
     ACTION_SERIE = "serie"
     ACTION_VIDEO = "video"
-    ACTION_PLAY = "play"
     ACTION_PAGE = "page"
+    ACTION_SEARCH = "search"
 
     def initialize(self, argv):
         G.init_globals(argv) # Has to be executed first!
@@ -58,15 +57,17 @@ class Router:
             return
         if self.params:
             action = self.params["action"]
-            param = self.params["param"]
+            param = self.params.get("param", None)
             if action == self.ACTION_PAGE:
                 self.list_page_content(param)
-            elif action == self.ACTION_SERIE:
+            elif action == self.ACTION_STRUCTURE:
                 self.list_structure_content(param)
-            elif action == self.ACTION_VIDEO:
+            elif action == self.ACTION_SERIE:
                 self.list_videos(param)
-            elif action == self.ACTION_PLAY:
+            elif action == self.ACTION_VIDEO:
                 self.play_video(param)
+            elif action == self.ACTION_SEARCH:
+                self.search()
             else:
                 raise ValueError("Invalid paramstring: {0}!".format(self.params))
         else:
@@ -134,6 +135,7 @@ class Router:
     def list_pages(self):
         for page in self.pages.pages:
             self.add_directory(self.ACTION_PAGE, page, param=page.get_id())
+        self.add_directory(self.ACTION_SEARCH, Node(title="Search", plot="Search all TV2 Play content"))
         xbmcplugin.endOfDirectory(G.HANDLE)
     
     def list_page_content(self, page_id):
@@ -141,10 +143,10 @@ class Router:
         for subpage in self.api.get_subpages(page_id):
             self.add_directory(self.ACTION_PAGE, subpage, param=subpage.get_id())
         for structure in self.api.get_structures(page_id):
-            self.add_directory(self.ACTION_SERIE, structure, param=structure.get_id())
+            self.add_directory(self.ACTION_STRUCTURE, structure, param=structure.get_id())
         if page_id == "/live":
             for station in self.api.get_stations():
-                self.add_station(self.ACTION_PLAY, station, param=station.get_id())
+                self.add_station(self.ACTION_VIDEO, station, param=station.get_id())
         xbmcplugin.endOfDirectory(G.HANDLE)
 
     def get_url(self, **kwargs):
@@ -162,9 +164,9 @@ class Router:
         LOG.info("Enter structure: " + structure_id)
         videos, series = self.api.get_structure_content(structure_id)
         for s in series:
-            self.add_directory(self.ACTION_VIDEO, s, param=s.get_id())
+            self.add_directory(self.ACTION_SERIE, s, param=s.get_id())
         for v in videos:
-            self.add_video(self.ACTION_PLAY, v, param=v.get_id())
+            self.add_video(self.ACTION_VIDEO, v, param=v.get_id())
             xbmcplugin.addSortMethod(G.HANDLE, xbmcplugin.SORT_METHOD_DATE)
         xbmcplugin.endOfDirectory(G.HANDLE)
 
@@ -174,7 +176,7 @@ class Router:
         """
         LOG.info("Enter serie: " + serie_guid)
         for v in self.api.get_videos(serie_guid):
-            self.add_video(self.ACTION_PLAY, v, param=v.get_id())
+            self.add_video(self.ACTION_VIDEO, v, param=v.get_id())
             xbmcplugin.addSortMethod(G.HANDLE, xbmcplugin.SORT_METHOD_DATE)
         xbmcplugin.endOfDirectory(G.HANDLE)
 
@@ -194,5 +196,23 @@ class Router:
                 return 
             player = Player(playback)
             player.play_video()
+
+    def search(self):
+        search_phrase = self.prompt.get_input("Search")
+        if search_phrase == "" or search_phrase == None:
+            return
+        LOG.info("Searching for: " + search_phrase)
+        try:
+            (series, episodes, movies) = self.api.search(search_phrase)
+        except HTTPException as exp:
+            self.prompt.display_message(exp.title, exp.msg)
+        else:
+            for serie in series:
+                self.add_directory(self.ACTION_SERIE, serie, param=serie.get_id())
+            for episode in episodes:
+                self.add_video(self.ACTION_VIDEO, episode, episode.get_id())
+            for movie in movies:
+                self.add_video(self.ACTION_VIDEO, movie, movie.get_id())
+        xbmcplugin.endOfDirectory(G.HANDLE)
 
 ROUTER = Router()

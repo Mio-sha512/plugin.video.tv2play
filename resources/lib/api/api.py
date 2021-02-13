@@ -342,3 +342,57 @@ class PlayAPI:
                 stations.append(Station(station))
             return stations
         return None
+    
+    def search(self, search_phrase):
+        query = """
+            query play_web_content_SearchStructuresWithData(
+              $search_phrase: String!
+              $limit: Int
+            ) {
+              series: search(query: $search_phrase, entityTypes: series) {
+                ...SearchStructureFragment
+                __typename
+              }
+              episode: search(query: $search_phrase, entityTypes: episode) {
+                ...SearchStructureFragment
+                __typename
+              }
+              movie: search(query: $search_phrase, entityTypes: movie) {
+                ...SearchStructureFragment
+                __typename
+              }
+            }
+            fragment SearchStructureFragment on SearchPanelStructure {
+              entities(limit: $limit) {
+                nodes {
+                  id
+                  guid
+                  type
+                  originalTitle: title
+                  title: presentationTitle
+                  subtitle: presentationSubtitle
+                  description: presentationDescription
+                  thumbnail: presentationArt {
+                    url
+                  }
+                }
+              }
+            }
+        """
+        series = []
+        episodes = []
+        movies = []
+        data = self.__do_request(query, search_phrase=search_phrase, limit=15)
+        if data != None:
+            for serie in data["series"]["entities"]["nodes"]:
+                series.append(Serie(serie))
+            for episode in data["episode"]["entities"]["nodes"]:
+                episodes.append(Video(episode))
+            for movie in data["movie"]["entities"]["nodes"]:
+                movies.append(Video(movie))
+        return (series, episodes, movies)
+
+
+
+
+
