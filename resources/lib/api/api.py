@@ -18,9 +18,9 @@ class PlayAPI:
         self.api_url = "https://api.ovp.tv2.dk"
         self.auth_url = "https://play.tv2.dk/api/user"
         self.cookie_file = CookieFile(G.DATA_PATH, G.COOKIES_FILE_NAME)
+        self.concurrency_lock = ConcurrencyLock(G.CONCURRENCY_FILE)
         self.session = requests.session()
         self.user = None
-        self.concurrency_lock = None
 
     def login(self, username, password):
         login_url = self.auth_url + "/login?return_url=/"
@@ -59,7 +59,6 @@ class PlayAPI:
             self.cookie_file.save(self.session.cookies)
 
             self.user = User(response.json()["user"])
-            self.concurrency_lock = ConcurrencyLock()
             return True
         LOG.warning("Login failed")
         return False
@@ -76,7 +75,6 @@ class PlayAPI:
             if response.status_code == 200 and response.json()["user"] != None:
                 LOG.info("Authenticated with cookies")
                 self.user = User(response.json()["user"])
-                self.concurrency_lock = ConcurrencyLock()
                 self.session.headers.update(self.__get_headers())
                 return True
             LOG.warning("Failed to authenticate with cookies with status_code :" + str(response.status_code))
@@ -305,10 +303,10 @@ class PlayAPI:
         }
         """
         if self.concurrency_lock.is_locked():
-            response_code = self.concurrency_lock.unlock(self.user.client_id, self.session)
+            response_code = self.concurrency_lock.unlock(self.session)
             LOG.info("Unlocking concurrency lock - Status: " + str(response_code))
         try:
-            data = self.__do_request(query, guid=guid, clientId=self.user.client_id)
+            data = self.__do_request(query, guid=guid, clientId=self.concurrency_lock.get_client_id())
             self.concurrency_lock.set_meta(data["playback"]["smil"]["meta"]["nodes"])
             if data != None and data["playback"] != None:
                 return PlayBack(data["playback"])

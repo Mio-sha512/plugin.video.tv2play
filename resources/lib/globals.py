@@ -17,6 +17,7 @@ class Globals():
             self.ADDON_NAME = self.ADDON.getAddonInfo("name")
             self.DATA_PATH = xbmc.translatePath(self.ADDON.getAddonInfo('profile'))
             self.COOKIES_FILE_NAME = xbmc.translatePath(os.path.join(self.DATA_PATH, 'COOKIES'))
+            self.CONCURRENCY_FILE = xbmc.translatePath(os.path.join(self.DATA_PATH, 'CLIENT_ID'))
             self.HANDLE = int(argv[1])
 
 G = Globals()

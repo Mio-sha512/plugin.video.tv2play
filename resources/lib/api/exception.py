@@ -3,6 +3,7 @@ class LoginException (Exception):
 
 class HTTPException(Exception):
     TYPE = "HttpError"
+
     def __init__(self, title="Http Error", msg="Bad connection, check your internet connection and try again." ):
         self.title = title
         self.msg = msg
