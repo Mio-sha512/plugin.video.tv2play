@@ -4,22 +4,29 @@ from datetime import datetime
 class Video(Node):
     def __init__(self, video):
         id = video["guid"]
-        plot = video["description"]
-        thumb = video["thumbnail"]["url"]
+        plot = video["description"] 
+        if video.get("firstPublicationDate", None) != None:
+            self.publication_date = datetime.fromtimestamp(int(video.get("firstPublicationDate", None)) / 1000).strftime("%d.%m.%Y")
+            plot = "Sendt %s\n%s" % (plot, self.publication_date)
+        thumb = None
+        if video.get("thumbnail", None) != None:
+            thumb = video["thumbnail"]["url"]
         title = video.get("title", None)
         Node.__init__(self, title=title, plot=plot, thumb=thumb, id=id)
 
         self.video = video
-        episode_number = video.get("episodeNumber", None)
-        self.episode_number = "0" + str(episode_number) if episode_number < 10 else str(episode_number)
-        season_number = video.get("seasonNumber", None)
-        self.season_number = "0" + str(season_number) if season_number < 10 else str(season_number)
+        self.episode_number = None
+        self.season_number = None
 
         self.publication_date = None
         if video.get("firstPublicationDate", None) != None:
             self.publication_date = datetime.fromtimestamp(int(video.get("firstPublicationDate", None)) / 1000).strftime("%d.%m.%Y")
         self.watched = video.get("watched", None)
-        if self.episode_number != None and self.season_number != None:
+        if video.get("episodeNumber", None) != None and video.get("seasonNumber") != None:
+            episode_number = video.get("episodeNumber", None)
+            self.episode_number = "0" + str(episode_number) if episode_number < 10 else str(episode_number)
+            season_number = video.get("seasonNumber", None)
+            self.season_number = "0" + str(season_number) if season_number < 10 else str(season_number)
             self.title = "%sx%s - %s" % ( self.season_number, self.episode_number, self.title )
 
     def get_publication_date(self):
