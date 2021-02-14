@@ -1,5 +1,6 @@
 import requests
 import time
+from datetime import datetime
 from resources.lib.api.cookies import CookieFile
 from resources.lib.globals import G
 from bs4 import BeautifulSoup
@@ -320,7 +321,10 @@ class PlayAPI:
     
     def get_stations(self):
         query = """
-            query {
+            query play_web_content_StationsWithEpgData(
+              $epgDate: String
+              $fetchEntities: Boolean!)
+            {
               stations {
                 nodes {
                   id
@@ -331,11 +335,24 @@ class PlayAPI:
                   presentationArt{
                     url
                  }
+                epgEntries(date: $epgDate) {
+                    nodes {
+                      title
+                      startUnix: start
+                      stopUnix: stop
+                      entity @include(if: $fetchEntities) {
+                        type
+                        references {
+                          web
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
         """
-        data = self.__do_request(query)
+        data = self.__do_request(query, fetchEntities=True)
         if data != None and data["stations"]["nodes"] != None:
             stations = []
             for station in data["stations"]["nodes"] :
