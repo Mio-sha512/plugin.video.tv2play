@@ -18,6 +18,9 @@ class ConcurrencyMeta:
             self.encrypted_lock = meta[5]["content"]
 
     def set_meta(self, meta):
+        LOG.info("META: " + str(meta))
+        if len(meta) == 0:
+            return
         self.lock_id = meta[3]["content"]
         self.sequence_token = meta[4]["content"]
         self.encrypted_lock = meta[5]["content"]
