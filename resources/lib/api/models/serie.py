@@ -6,5 +6,8 @@ class Serie(Node):
         id = serie["guid"]
         title = serie["title"]
         plot = serie["description"]
-        thumb = serie["thumbnail"]["url"]
+        thumb = None
+        thumbnail = serie.get("thumbnail", None)
+        if thumbnail != None:
+            thumb = thumbnail.get("url", None)
         Node.__init__(self, id=id, title=title, plot=plot, thumb=thumb)
