@@ -104,11 +104,12 @@ class PlayAPI:
         errors = response.json().get("errors", None)
         if errors:
             for e in errors:
+                data = e.get("data", {})
                 message = """
                     Message: %s - 
                     Type: %s -
                     Debug: %s
-                """ % (e["message"], e["data"]["type"], e["data"]["debug"])
+                """ % (e.get("message", "No Message"), data.get( "type", "No type" ), data.get( "debug", "No debug" ))
                 LOG.error(message)
                 exception_type = e["data"]["type"]
                 if exception_type == HTTPException.TYPE:
