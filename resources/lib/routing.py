@@ -4,9 +4,9 @@ try:
 except ImportError:
     from urlparse import parse_qsl
     from urllib import urlencode
-import inputstreamhelper
 import xbmcgui
 import xbmc
+import xbmcaddon
 import xbmcplugin
 from resources.lib.logging import LOG
 from resources.lib.globals import G
@@ -40,14 +40,24 @@ class Router:
             if is_authenticated:
                 LOG.info("Already authenticated")
                 return True
-            if not self.api.login_with_cookie():
+            if self.api.login_with_cookie():
+                LOG.info("Logged in with cookies.")
+                return True
+            username = G.ADDON.getSetting("username")
+            password = G.ADDON.getSetting("password")
+            if username == "" or password == "":
                 username, password = self.prompt.get_credentials()
-                if not self.api.login(username, password):
-                    self.prompt.display_message("Error", "Invalid credentials")
-                    return False
-                else:
+                if self.api.login(username, password):
+                    LOG.info("Logged in with typed credentials.")
                     return True
-            return True
+                self.prompt.display_message("Error", "The supplied credentials are invalid.")
+                return False
+            else:
+                if self.api.login(username, password):
+                    LOG.info("Loggged in with saved credentials.")
+                    return True
+                self.prompt.display_message("Error", "The saved credentials are invalid, change them in the addon's settings.")
+                return False
         except HTTPException as exp:
             self.prompt.display_message(exp.title, exp.msg)
             return False
