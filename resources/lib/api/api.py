@@ -207,7 +207,10 @@ class PlayAPI:
             series = []
             videos = []
             for s in data["structure"]["entities"]["nodes"]:
+                if s == None:
+                    continue
                 if s["type"] == "series":
+                    LOG.info(str(s))
                     series.append(Serie(s))
                 elif s["type"] == "episode":
                     videos.append(Video(s))
