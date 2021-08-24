@@ -6,8 +6,8 @@ from resources.lib.globals import G
 from bs4 import BeautifulSoup
 from ..logging import LOG
 from resources.lib.logging import LOG
-from .exception import LoginException, HTTPException, ConcurrencyLimitViolationException
-from .models import Video, PlayBack, Serie, Page, Structure, Station, User
+from .exception import LoginException, HTTPException, ConcurrencyLimitViolationException, NoTypeException
+from .models import Video, PlayBack, Serie, Page, Structure, Station, User, Season
 from .concurrency import ConcurrencyLock
 try:
     from urllib.parse import urlparse, parse_qs
@@ -100,7 +100,7 @@ class PlayAPI:
         data = {"query": query, "variables": kwargs}
         headers = self.__get_headers()
         response = self.session.post(self.api_url, json=data, headers=headers)
-        response_data = response.json()["data"]
+        response_data = response.json().get("data", None)
         errors = response.json().get("errors", None)
         if errors:
             for e in errors:
@@ -111,11 +111,13 @@ class PlayAPI:
                     Debug: %s
                 """ % (e.get("message", "No Message"), data.get( "type", "No type" ), data.get( "debug", "No debug" ))
                 LOG.error(message)
-                exception_type = e["data"]["type"]
+                exception_type = e.get("data", {}).get("type", None)
                 if exception_type == HTTPException.TYPE:
                     raise HTTPException()
                 elif exception_type == ConcurrencyLimitViolationException.TYPE:
                     raise ConcurrencyLimitViolationException()
+                else:
+                    raise NoTypeException()
             return None
         if response.status_code == 200 and response_data != None:
             return response_data
@@ -169,37 +171,44 @@ class PlayAPI:
     def get_structure_content(self, structure_id):
         query = """
             query play_web_content_Structure(
-              $entitySort: SortType
-              $structureId: ID!
-              $limit: Int
+                $entitySort: SortType
+                $structureId: ID!
+                $limit: Int
             ) {
-              structure(id: $structureId) {
-                ...StructureFragment
-              }
+                structure(id: $structureId) {
+                    ...StructureFragment
+                }
             }
             fragment StructureFragment on Structure {
-              entities(
-                sort: $entitySort
-                limit: $limit
-              ) {
-                pageInfo {
-                  totalCount
+                entities(
+                    sort: $entitySort
+                    limit: $limit
+                ) {
+                    pageInfo {
+                        totalCount
+                    }
+                    nodes {
+                        ...StructureEntityFragment
+                    }
                 }
-                nodes {
-                  ...StructureEntityFragment
-                }
-              }
             }
 
             fragment StructureEntityFragment on Entity {
-              id
-              guid
-              type
-              title: presentationTitle
-              description: presentationDescription
-              thumbnail: presentationArt {
-                url
-              }
+                id
+                guid
+                type
+                title: presentationTitle
+                description: presentationDescription
+                thumbnail: presentationArt {
+                    url
+                }
+                ... on Series {
+                        seasons(limit: $limit, order: asc){
+                        nodes {
+                            seasonNumber
+                        }
+                    }
+                }
             }
         """
         data = self.__do_request(query, limit=9999, entitySort="popular", structureId=structure_id)
@@ -210,14 +219,56 @@ class PlayAPI:
                 if s == None:
                     continue
                 if s["type"] == "series":
-                    LOG.info(str(s))
                     series.append(Serie(s))
                 elif s["type"] == "episode":
                     videos.append(Video(s))
             return videos, series
         return [],[]
+
+    def get_seasons(self, serie_guid):
+        query = """
+            query serieSeasonQuery(
+                $serieGuid: String!
+                $limit: Int
+            ){
+                entity(guid: $serieGuid) {
+                    id
+                    guid
+                    type
+                    originalTitle: title
+                    title: presentationTitle
+                    subtitle: presentationSubtitle
+                    description: presentationDescription
+                    thumbnail: presentationArt {
+                        type
+                        url
+                    }
+                    ... on Series {
+                            seasons(limit: $limit, order: asc){
+                            nodes {
+                                id
+                                seasonNumber
+                                title
+                            }
+                        }
+                    }
+                }
+            }
+        """
+        data = self.__do_request(query, limit=9999, serieGuid=serie_guid)
+        if data != None:
+            seasons = []
+            thumbnail = data["entity"]["thumbnail"]["url"]
+            plot = data["entity"]["description"]
+            for s in data["entity"]["seasons"]["nodes"]:
+                if s == None:
+                    continue
+                season = Season(s, plot, thumbnail)
+                seasons.append(season)
+            return seasons
+        return []
     
-    def get_videos(self, serie_guid):
+    def get_serie_videos(self, serie_guid):
         query = """
             query play_web_content_SeriesEpisodeEntityPage_LatestEpisodes(
               $seriesGuid: String!
@@ -269,6 +320,63 @@ class PlayAPI:
                 videos.append(Video(v))
             return videos
         return None
+
+    def get_season_videos(self, season_id):
+        query = """
+            query SeasonEpisodesQuery($seasonId: ID!, $limit: Int) {
+              season(id: $seasonId) {
+                id
+                title
+                episodes(limit: $limit) {
+                  ...EpisodeListFragment
+                }
+              }
+            }
+            fragment EpisodeListFragment on EpisodeList {
+              nodes {
+                episodeNumber
+                firstPublicationDate
+                lastPublicationDate
+                watched
+                duration
+                ... on Progressable {
+                  progress {
+                    position
+                    duration
+                  }
+                }
+                ...StructureEntityFragment
+              }
+            }
+            fragment StructureEntityFragment on Entity {
+              id
+              guid
+              type
+              title
+              subtitle: presentationSubtitle
+              description: presentationDescription
+              thumbnail: presentationArt {
+                type
+                url
+                __typename
+              }
+              ... on Episode {
+                art(type: "alt_promotion") {
+                  nodes {
+                    url
+                  }
+                }
+              }
+            }
+        """
+        data = self.__do_request(query, limit=999, seasonId=season_id)
+        if data != None:
+            videos = []
+            for v in data["season"]["episodes"]["nodes"]:
+                videos.append(Video(v))
+            return videos
+        return None
+
 
     def get_playback(self, guid):
         query = """

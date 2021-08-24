@@ -19,6 +19,8 @@ from resources.lib.api.exception import ConcurrencyLimitViolationException, HTTP
 class Router:
     ACTION_STRUCTURE = "structure"
     ACTION_SERIE = "serie"
+    ACTION_SEASON = "season"
+    ACTION_SERIE_VIDEO = "show"
     ACTION_VIDEO = "video"
     ACTION_PAGE = "page"
     ACTION_SEARCH = "search"
@@ -68,16 +70,30 @@ class Router:
         if self.params:
             action = self.params["action"]
             param = self.params.get("param", None)
+
             if action == self.ACTION_PAGE:
                 self.list_page_content(param)
+
             elif action == self.ACTION_STRUCTURE:
                 self.list_structure_content(param)
+
             elif action == self.ACTION_SERIE:
-                self.list_videos(param)
+                self.list_seasons(param)
+
+            elif action == self.ACTION_SERIE_VIDEO:
+                videos = self.api.get_serie_videos(param)
+                self.list_videos(videos)
+
+            elif action == self.ACTION_SEASON:
+                videos = self.api.get_season_videos(param)
+                self.list_videos(videos)
+                
             elif action == self.ACTION_VIDEO:
                 self.play_video(param)
+
             elif action == self.ACTION_SEARCH:
                 self.search()
+
             else:
                 raise ValueError("Invalid paramstring: {0}!".format(self.params))
         else:
@@ -129,6 +145,7 @@ class Router:
             }
         self.add_list_item(action,label=label, info=info, art=art, param=param, is_folder=False)
 
+
     def add_station(self, action, station, param=""):
         label = station.get_title()
         info = {"title": station.get_title(),
@@ -174,20 +191,30 @@ class Router:
         LOG.info("Enter structure: " + structure_id)
         videos, series = self.api.get_structure_content(structure_id)
         for s in series:
-            self.add_directory(self.ACTION_SERIE, s, param=s.get_id())
+            LOG.info("Has seasons: " + str(s.has_seasons()))
+            if s.has_seasons():
+                self.add_directory(self.ACTION_SERIE, s, param=s.get_id())
+            else:
+                self.add_directory(self.ACTION_SERIE_VIDEO, s, param=s.get_id())
+                
         for v in videos:
             self.add_video(self.ACTION_VIDEO, v, param=v.get_id())
             xbmcplugin.addSortMethod(G.HANDLE, xbmcplugin.SORT_METHOD_DATE)
         xbmcplugin.endOfDirectory(G.HANDLE)
 
 
-    def list_videos(self, serie_guid):
+    def list_videos(self, videos):
         """
         """
-        LOG.info("Enter serie: " + serie_guid)
-        for v in self.api.get_videos(serie_guid):
+        for v in videos:
             self.add_video(self.ACTION_VIDEO, v, param=v.get_id())
             xbmcplugin.addSortMethod(G.HANDLE, xbmcplugin.SORT_METHOD_DATE)
+        xbmcplugin.endOfDirectory(G.HANDLE)
+
+    def list_seasons(self, serie_guid):
+        LOG.info("Listing seasons: " + serie_guid)
+        for season in self.api.get_seasons(serie_guid):
+            self.add_directory(self.ACTION_SEASON, season, param=season.get_id())
         xbmcplugin.endOfDirectory(G.HANDLE)
 
     def play_video(self, video_guid):
@@ -218,7 +245,7 @@ class Router:
             self.prompt.display_message(exp.title, exp.msg)
         else:
             for serie in series:
-                self.add_directory(self.ACTION_SERIE, serie, param=serie.get_id())
+                self.add_directory(self.ACTION_SERIE_VIDEO, serie, param=serie.get_id())
             for episode in episodes:
                 self.add_video(self.ACTION_VIDEO, episode, episode.get_id())
             for movie in movies:

@@ -17,3 +17,10 @@ class ConcurrencyLimitViolationException(Exception):
         self.msg = msg
         Exception.__init__(self, self.msg)
 
+class NoTypeException(Exception):
+    def __init__(self, title="Error", msg="An unkown error occured.\nView the log for more details."):
+        self.title = title
+        self.msg = msg
+        Exception.__init__(self, self.msg)
+
+
