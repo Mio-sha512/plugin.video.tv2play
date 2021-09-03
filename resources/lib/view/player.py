@@ -11,6 +11,7 @@ class Player():
 
     def play_video(self):
         LOG.info("Playing video at: " + self.video.src)
+        LOG.info("License url: " + self.video.license_url)
         list_item = xbmcgui.ListItem(path=self.video.src)
         list_item.setContentLookup(False)
         list_item.setMimeType(self.video.mime_type)
