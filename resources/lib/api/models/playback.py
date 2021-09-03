@@ -17,6 +17,9 @@ class PlayBack:
         self.license_url += "&sec-ch-ua=\"Google Chrome\";v=\"93\", \" Not;A Brand\";v=\"99\", \"Chromium\";v=\"93\""
         self.license_url += "&sec-ch-ua-mobile=?0"
         self.license_url += "&sec-ch-ua-platform=\"Linux\""
+        self.license_url += "&Sec-Fetch-Dest=empty"
+        self.license_url += "&Sec-Fetch-Mode=cors"
+        self.license_url += "&Sec-Fetch-Site=cross-site"
         self.license_url += "&Host=lic.drmtoday.com"
         self.license_url += "&x-dt-auth-token=%s|R{SSM}|JBlicense" % self.license_token
     
