@@ -68,7 +68,11 @@ class ConcurrencyLock:
             self.concurrencyMeta = ConcurrencyMeta()
             self.__save()
         with open(self.file_path, "rb") as concurrency_file:
-            self.concurrencyMeta = pickle.load(concurrency_file)
+            try:
+                self.concurrencyMeta = pickle.load(concurrency_file)
+            except EOFError: # If the file exists but is empty, write to it
+                self.concurrencyMeta = ConcurrencyMeta()
+                self.__save();
 
     def is_locked(self):
         if self.concurrencyMeta == None:
