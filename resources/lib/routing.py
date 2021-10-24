@@ -1,3 +1,4 @@
+import os
 import sys
 from urllib.parse import parse_qsl, urlencode
 import xbmcgui
@@ -27,6 +28,8 @@ class Router:
             self.prompt = Prompt()
             self.api = PlayAPI()
             self.pages = Pages()
+            if not os.path.exists(G.DATA_PATH):
+                os.makedirs(G.DATA_PATH)
         G.FIRST_RUN = False
         LOG.info(argv)
         self.params = dict(parse_qsl(argv[2][1:]))
