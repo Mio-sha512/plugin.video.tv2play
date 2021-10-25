@@ -24,12 +24,12 @@ class Router:
 
     def initialize(self, argv):
         G.init_globals(argv) # Has to be executed first!
+        if not os.path.exists(G.DATA_PATH):
+            os.makedirs(G.DATA_PATH)
         if G.FIRST_RUN:
             self.prompt = Prompt()
             self.api = PlayAPI()
             self.pages = Pages()
-            if not os.path.exists(G.DATA_PATH):
-                os.makedirs(G.DATA_PATH)
         G.FIRST_RUN = False
         LOG.info(argv)
         self.params = dict(parse_qsl(argv[2][1:]))
