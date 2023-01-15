@@ -4,6 +4,3 @@ import sys
 
 ROUTER.initialize(sys.argv)
 ROUTER.route()
-
-
-
